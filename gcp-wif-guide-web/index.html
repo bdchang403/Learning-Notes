@@ -51,195 +51,220 @@
         </nav>
     </aside>
 
-    <header class="hero">
-        <div class="container">
-            <h1>Secure CI/CD with Workload Identity Federation</h1>
-            <p class="subtitle">Connect GitHub Actions to Google Cloud Platform securely, without managing service
-                account keys.</p>
-            <a href="#github" class="btn primary-btn">Start Guide</a>
-        </div>
-    </header>
+    <div class="main-content">
+        <header class="hero">
+            <div class="container">
+                <h1>Secure CI/CD with Workload Identity Federation</h1>
 
-    <main class="container">
+                <div class="learning-intro">
+                    <div class="intro-block">
+                        <h3>Learning Objectives</h3>
+                        <ul>
+                            <li><span class="highlight-icon">✓</span> Configure a secure connection between GitHub and
+                                Google Cloud.</li>
+                            <li><span class="highlight-icon">✓</span> Implement "Keyless" authentication using Workload
+                                Identity Federation.</li>
+                            <li><span class="highlight-icon">✓</span> Automate container deployment to Cloud Run.</li>
+                        </ul>
+                    </div>
 
-        <!-- SECTION 1: GITHUB -->
-        <section id="github" class="step-section">
-            <div class="step-header">
-                <h2>1. Create GitHub Repository</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? We need a place to store our code and the automation workflow
-                        configuration.</div>
+                    <div class="intro-block">
+                        <h3>Rationale</h3>
+                        <p>Traditional service account keys are a security risk (they don't expire and can be leaked).
+                            By
+                            using <strong>Workload Identity Federation</strong>, we allow GitHub to "borrow" permissions
+                            only during the workflow run. This is the industry standard for modern, secure DevOps
+                            pipelines.
+                        </p>
+                    </div>
                 </div>
             </div>
-            <div class="step-content">
-                <p>Start by creating a new repository on GitHub.</p>
-                <ol>
-                    <li>Click <strong>+</strong> > <strong>New repository</strong>.</li>
-                    <li>Name: <code>gcp-wif-demo</code>.</li>
-                    <li>Visibility: <strong>Public</strong> or <strong>Private</strong>.</li>
-                    <li>Initialize with a <strong>README</strong>.</li>
-                </ol>
-                <div class="image-wrapper">
-                    <img src="images/github_new_repo_ui.png" alt="GitHub New Repo UI">
-                    <p class="caption">Create Repository Page</p>
-                </div>
-            </div>
-        </section>
+        </header>
 
-        <!-- SECTION 2: GCP SETUP -->
-        <section id="gcp-setup" class="step-section">
-            <div class="step-header">
-                <h2>2. Google Cloud Setup</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? We need to tell Google Cloud to activate the specific services (APIs) we
-                        plan to use, like IAM and Artifact Registry.</div>
+        <main class="container">
+
+            <!-- SECTION 1: GITHUB -->
+            <section id="github" class="step-section">
+                <div class="step-header">
+                    <h2>1. Create GitHub Repository</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? We need a place to store our code and the automation workflow
+                            configuration.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Set up your environment variables to make copy-pasting easier.</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">export PROJECT_ID="your-project-id"
+                <div class="step-content">
+                    <p>Start by creating a new repository on GitHub.</p>
+                    <ol>
+                        <li>Click <strong>+</strong> > <strong>New repository</strong>.</li>
+                        <li>Name: <code>gcp-wif-demo</code>.</li>
+                        <li>Visibility: <strong>Public</strong> or <strong>Private</strong>.</li>
+                        <li>Initialize with a <strong>README</strong>.</li>
+                    </ol>
+                    <div class="image-wrapper">
+                        <img src="images/github_new_repo_ui.png" alt="GitHub New Repo UI">
+                        <p class="caption">Create Repository Page</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: GCP SETUP -->
+            <section id="gcp-setup" class="step-section">
+                <div class="step-header">
+                    <h2>2. Google Cloud Setup</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? We need to tell Google Cloud to activate the specific services (APIs)
+                            we
+                            plan to use, like IAM and Artifact Registry.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>Set up your environment variables to make copy-pasting easier.</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">export PROJECT_ID="your-project-id"
 export REGION="us-central1"
 export REPO_NAME="gcp-wif-demo"
 export USER_NAME="your-github-username"</code></pre>
-                    <button class="copy-btn">Copy</button>
-                </div>
+                        <button class="copy-btn">Copy</button>
+                    </div>
 
-                <p>Enable the required APIs:</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">gcloud services enable iam.googleapis.com \
+                    <p>Enable the required APIs:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">gcloud services enable iam.googleapis.com \
     cloudresourcemanager.googleapis.com \
     iamcredentials.googleapis.com \
     artifactregistry.googleapis.com \
     --project="${PROJECT_ID}"</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 3: WIF -->
-        <section id="wif" class="step-section">
-            <div class="step-header">
-                <h2>3. Workload Identity Federation</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Required because: This establishes a "trust relationship" so Google Cloud
-                        believes GitHub is a legitimate identity provider. No keys needed!</div>
+            <!-- SECTION 3: WIF -->
+            <section id="wif" class="step-section">
+                <div class="step-header">
+                    <h2>3. Workload Identity Federation</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Required because: This establishes a "trust relationship" so Google Cloud
+                            believes GitHub is a legitimate identity provider. No keys needed!</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Create a <strong>Pool</strong> to organize your external identities.</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">gcloud iam workload-identity-pools create "github-pool" \
+                <div class="step-content">
+                    <p>Create a <strong>Pool</strong> to organize your external identities.</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">gcloud iam workload-identity-pools create "github-pool" \
   --project="${PROJECT_ID}" \
   --location="global" \
   --display-name="GitHub Actions Pool"</code></pre>
-                    <button class="copy-btn">Copy</button>
-                </div>
+                        <button class="copy-btn">Copy</button>
+                    </div>
 
-                <div class="image-wrapper">
-                    <img src="images/gcp_wif_pool_ui.png" alt="WIF Pool UI">
-                </div>
+                    <div class="image-wrapper">
+                        <img src="images/gcp_wif_pool_ui.png" alt="WIF Pool UI">
+                    </div>
 
-                <p>Create a <strong>Provider</strong> to trust GitHub's OIDC tokens.</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">gcloud iam workload-identity-pools providers create-oidc "github-provider" \
+                    <p>Create a <strong>Provider</strong> to trust GitHub's OIDC tokens.</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">gcloud iam workload-identity-pools providers create-oidc "github-provider" \
   --project="${PROJECT_ID}" \
   --location="global" \
   --workload-identity-pool="github-pool" \
   --display-name="GitHub Provider" \
   --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
   --issuer-uri="https://token.actions.githubusercontent.com"</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 4: IAM -->
-        <section id="iam" class="step-section">
-            <div class="step-header">
-                <h2>4. Service Account & IAM</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? The "Service Account" is the actual GCP user that performs the work (like
-                        pushing a docker image). We give GitHub permission to "act as" this user.</div>
+            <!-- SECTION 4: IAM -->
+            <section id="iam" class="step-section">
+                <div class="step-header">
+                    <h2>4. Service Account & IAM</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? The "Service Account" is the actual GCP user that performs the work
+                            (like
+                            pushing a docker image). We give GitHub permission to "act as" this user.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Create the Service Account:</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">export SERVICE_ACCOUNT="github-actions-sa"
+                <div class="step-content">
+                    <p>Create the Service Account:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">export SERVICE_ACCOUNT="github-actions-sa"
 
 gcloud iam service-accounts create "${SERVICE_ACCOUNT}" \
   --project="${PROJECT_ID}" \
   --display-name="GitHub Actions Service Account"</code></pre>
-                    <button class="copy-btn">Copy</button>
-                </div>
+                        <button class="copy-btn">Copy</button>
+                    </div>
 
-                <p>Grant permission to write to Artifact Registry:</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+                    <p>Grant permission to write to Artifact Registry:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/artifactregistry.writer"</code></pre>
-                    <button class="copy-btn">Copy</button>
-                </div>
+                        <button class="copy-btn">Copy</button>
+                    </div>
 
-                <p><strong>Crucial Step:</strong> Allow your specific GitHub repo to impersonate this Service Account.
-                </p>
-                <div class="code-block">
-                    <pre><code class="language-bash">gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+                    <p><strong>Crucial Step:</strong> Allow your specific GitHub repo to impersonate this Service
+                        Account.
+                    </p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">gcloud iam service-accounts add-iam-policy-binding "${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
   --project="${PROJECT_ID}" \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/projects/$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')/locations/global/workloadIdentityPools/github-pool/attribute.repository/${USER_NAME}/${REPO_NAME}"</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 5: ARTIFACT REGISTRY -->
-        <section id="artifact" class="step-section">
-            <div class="step-header">
-                <h2>5. Artifact Registry</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? We need a private, secure place to store our Docker container images,
-                        similar to Docker Hub but inside Google Cloud.</div>
+            <!-- SECTION 5: ARTIFACT REGISTRY -->
+            <section id="artifact" class="step-section">
+                <div class="step-header">
+                    <h2>5. Artifact Registry</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? We need a private, secure place to store our Docker container images,
+                            similar to Docker Hub but inside Google Cloud.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Create the Docker repository:</p>
-                <div class="code-block">
-                    <pre><code class="language-bash">export AR_REPO="my-docker-repo"
+                <div class="step-content">
+                    <p>Create the Docker repository:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">export AR_REPO="my-docker-repo"
 
 gcloud artifacts repositories create "${AR_REPO}" \
   --project="${PROJECT_ID}" \
   --location="${REGION}" \
   --repository-format=docker \
   --description="Docker repository for GitHub Actions"</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                    <div class="image-wrapper">
+                        <img src="images/gcp_artifact_registry_ui.png" alt="Artifact Registry UI">
+                    </div>
                 </div>
-                <div class="image-wrapper">
-                    <img src="images/gcp_artifact_registry_ui.png" alt="Artifact Registry UI">
-                </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 6: ACTIONS -->
-        <section id="actions" class="step-section">
-            <div class="step-header">
-                <h2>6. GitHub Actions Workflow</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? This YAML file tells GitHub *exactly* what steps to run automatically when
-                        you push code.</div>
+            <!-- SECTION 6: ACTIONS -->
+            <section id="actions" class="step-section">
+                <div class="step-header">
+                    <h2>6. GitHub Actions Workflow</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? This YAML file tells GitHub *exactly* what steps to run automatically
+                            when
+                            you push code.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Create <code>.github/workflows/deploy.yaml</code> in your repo:</p>
-                <div class="code-block">
-                    <pre><code class="language-yaml">name: Build and Push to GCP
+                <div class="step-content">
+                    <p>Create <code>.github/workflows/deploy.yaml</code> in your repo:</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">name: Build and Push to GCP
 
 on:
   push:
@@ -281,25 +306,26 @@ jobs:
         run: |-
           docker build -t "${{ env.GAR_LOCATION }}/my-app:${{ github.sha }}" .
           docker push "${{ env.GAR_LOCATION }}/my-app:${{ github.sha }}"</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 7: CLOUD RUN -->
-        <section id="cloudrun" class="step-section">
-            <div class="step-header">
-                <h2>7. Deploy to Cloud Run</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">Why? Cloud Run is "serverless". It takes your Docker container and runs it on a
-                        URL instantly without you managing servers.</div>
+            <!-- SECTION 7: CLOUD RUN -->
+            <section id="cloudrun" class="step-section">
+                <div class="step-header">
+                    <h2>7. Deploy to Cloud Run</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Why? Cloud Run is "serverless". It takes your Docker container and runs it
+                            on a
+                            URL instantly without you managing servers.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <p>Update your workflow file to add the deploy step:</p>
-                <div class="code-block">
-                    <pre><code class="language-yaml">      - name: Deploy to Cloud Run
+                <div class="step-content">
+                    <p>Update your workflow file to add the deploy step:</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">      - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -307,90 +333,99 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.GAR_LOCATION }}/my-app:${{ github.sha }}
           flags: '--allow-unauthenticated'</code></pre>
-                    <button class="copy-btn">Copy</button>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                    <p><strong>To Kick-start:</strong> Commit and push these changes to your <code>main</code> branch.
+                        Go to
+                        the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
                 </div>
-                <p><strong>To Kick-start:</strong> Commit and push these changes to your <code>main</code> branch. Go to
-                    the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
-            </div>
-        </section>
+            </section>
 
-        <!-- SECTION 8: TROUBLESHOOTING -->
-        <section id="troubleshoot" class="step-section">
-            <div class="step-header">
-                <h2>8. Top 10 Common Errors</h2>
-                <div class="tooltip-container">
-                    <span class="info-icon">?</span>
-                    <div class="tooltip">First deployments fail 90% of the time due to permission logic. Here is how to
-                        fix the most common ones.</div>
+            <!-- SECTION 8: TROUBLESHOOTING -->
+            <section id="troubleshoot" class="step-section">
+                <div class="step-header">
+                    <h2>8. Top 10 Common Errors</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">First deployments fail 90% of the time due to permission logic. Here is how
+                            to
+                            fix the most common ones.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="step-content">
-                <details class="faq-item">
-                    <summary><strong>1. Container failed to start (PORT 8080)</strong></summary>
-                    <p><strong>Cause:</strong> Your app isn't listening on the environment variable <code>$PORT</code>
-                        (default 8080). <br><strong>Fix:</strong> Change your code to listen on
-                        <code>process.env.PORT</code> instead of a hardcoded 3000.</p>
-                </details>
+                <div class="step-content">
+                    <details class="faq-item">
+                        <summary><strong>1. Container failed to start (PORT 8080)</strong></summary>
+                        <p><strong>Cause:</strong> Your app isn't listening on the environment variable
+                            <code>$PORT</code>
+                            (default 8080). <br><strong>Fix:</strong> Change your code to listen on
+                            <code>process.env.PORT</code> instead of a hardcoded 3000.
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>2. Permission 'run.admin' missing</strong></summary>
-                    <p><strong>Fix:</strong> Give the Service Account the role:
-                        <br><code>gcloud projects add-iam-policy-binding ... --role="roles/run.admin"</code></p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>2. Permission 'run.admin' missing</strong></summary>
+                        <p><strong>Fix:</strong> Give the Service Account the role:
+                            <br><code>gcloud projects add-iam-policy-binding ... --role="roles/run.admin"</code>
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>3. Permission 'iam.serviceAccountUser' missing</strong></summary>
-                    <p><strong>Fix:</strong> The Service Account needs permission to "act as" itself.
-                        <br><code>gcloud projects add-iam-policy-binding ... --role="roles/iam.serviceAccountUser"</code>
-                    </p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>3. Permission 'iam.serviceAccountUser' missing</strong></summary>
+                        <p><strong>Fix:</strong> The Service Account needs permission to "act as" itself.
+                            <br><code>gcloud projects add-iam-policy-binding ... --role="roles/iam.serviceAccountUser"</code>
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>4. Subject Issuer Mismatch</strong></summary>
-                    <p><strong>Cause:</strong> Typo in the Workload Identity Federation mapping.
-                        <br><strong>Fix:</strong> Check if your <code>repo:user/repo</code> casing matches exactly.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>4. Subject Issuer Mismatch</strong></summary>
+                        <p><strong>Cause:</strong> Typo in the Workload Identity Federation mapping.
+                            <br><strong>Fix:</strong> Check if your <code>repo:user/repo</code> casing matches exactly.
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>5. Permission 'artifactregistry.writer' missing</strong></summary>
-                    <p><strong>Fix:</strong> Ensure SA has <strong>Artifact Registry Writer</strong> role.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>5. Permission 'artifactregistry.writer' missing</strong></summary>
+                        <p><strong>Fix:</strong> Ensure SA has <strong>Artifact Registry Writer</strong> role.</p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>6. Org Policy Restricted</strong></summary>
-                    <p><strong>Cause:</strong> Your company blocks public (unauthenticated) sites.
-                        <br><strong>Fix:</strong> Remove <code>--allow-unauthenticated</code> or ask Admin.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>6. Org Policy Restricted</strong></summary>
+                        <p><strong>Cause:</strong> Your company blocks public (unauthenticated) sites.
+                            <br><strong>Fix:</strong> Remove <code>--allow-unauthenticated</code> or ask Admin.
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>7. Region Mismatch</strong></summary>
-                    <p><strong>Cause:</strong> Artifact in <code>us-east1</code> but deploying to
-                        <code>us-central1</code>.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>7. Region Mismatch</strong></summary>
+                        <p><strong>Cause:</strong> Artifact in <code>us-east1</code> but deploying to
+                            <code>us-central1</code>.
+                        </p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>8. API not enabled</strong></summary>
-                    <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>8. API not enabled</strong></summary>
+                        <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>9. GitHub Secrets Typos</strong></summary>
-                    <p><strong>Tip:</strong> Check for accidental spaces when pasting secrets.</p>
-                </details>
+                    <details class="faq-item">
+                        <summary><strong>9. GitHub Secrets Typos</strong></summary>
+                        <p><strong>Tip:</strong> Check for accidental spaces when pasting secrets.</p>
+                    </details>
 
-                <details class="faq-item">
-                    <summary><strong>10. Docker Context Error</strong></summary>
-                    <p><strong>Cause:</strong> <code>COPY . .</code> failing? Check your <code>.dockerignore</code>
-                        file.</p>
-                </details>
-            </div>
-        </section>
+                    <details class="faq-item">
+                        <summary><strong>10. Docker Context Error</strong></summary>
+                        <p><strong>Cause:</strong> <code>COPY . .</code> failing? Check your <code>.dockerignore</code>
+                            file.</p>
+                    </details>
+                </div>
+            </section>
 
-    </main>
+        </main>
 
-    <footer>
-        <p>&copy; 2024 Secure CI/CD Guide. Generated by Antigravity.</p>
-    </footer>
+        <footer>
+            <p>&copy; 2024 Secure CI/CD Guide. Generated by Antigravity.</p>
+        </footer>
+    </div>
 
     <script src="script.js"></script>
 </body>

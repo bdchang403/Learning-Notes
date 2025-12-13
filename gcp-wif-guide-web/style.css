@@ -1,0 +1,381 @@
+:root {
+    --primary-color: #4285F4;
+    --secondary-color: #34A853;
+    --background-color: #0d1117;
+    --card-bg: #161b22;
+    --text-color: #c9d1d9;
+    --highlight-color: #58a6ff;
+    --border-color: #30363d;
+    --tooltip-bg: #E3F2FD;
+    --tooltip-text: #0D47A1;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Layout */
+body {
+    display: flex;
+    overflow-x: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: var(--card-bg);
+    border-right: 1px solid var(--border-color);
+    position: fixed;
+    left: -250px;
+    top: 0;
+    transition: left 0.3s ease-in-out;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.active {
+    left: 0;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.5rem;
+    color: var(--text-color);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: rgba(66, 133, 244, 0.1);
+    border-left-color: var(--primary-color);
+    color: #fff;
+}
+
+.step-num {
+    font-size: 0.8rem;
+    color: #8b949e;
+    margin-right: 10px;
+    font-family: monospace;
+}
+
+/* Menu Toggle */
+.menu-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    transition: left 0.3s ease-in-out;
+}
+
+.menu-toggle span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 2px;
+}
+
+.sidebar.active+.menu-toggle,
+/* If adjacent */
+.menu-toggle.moved {
+    /* JS will toggle this class */
+    left: 270px;
+}
+
+/* Main Content Adjustment */
+.hero {
+    margin-top: 0;
+    padding-top: 6rem;
+    /* Space for toggle */
+    width: 100%;
+}
+
+.container {
+    width: 100%;
+    margin: 0 auto;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Desktop: Sidebar visible by default logic can be added, 
+   but user asked for button to expand. We'll start closed to match "expand menu". 
+   Or creating a 'push' effect. */
+
+@media (min-width: 1024px) {
+    .sidebar {
+        left: 0;
+    }
+
+    .menu-toggle {
+        display: none;
+        /* Hide toggle on large screens if we want persistent sidebar */
+    }
+
+    body {
+        padding-left: 250px;
+        /* Push content */
+    }
+
+    .hero {
+        padding-top: 5rem;
+    }
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 5rem 1rem;
+    background: radial-gradient(circle at top, #1f293a, var(--background-color));
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, #fff, #8b949e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #8b949e;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: transform 0.2s;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.primary-btn:hover {
+    transform: translateY(-2px);
+    background-color: #3b78da;
+}
+
+/* Container */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Sections */
+.step-section {
+    margin-bottom: 4rem;
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.step-header h2 {
+    color: #fff;
+    font-size: 1.8rem;
+    margin-right: 1rem;
+}
+
+/* Tooltips */
+.tooltip-container {
+    position: relative;
+    cursor: help;
+}
+
+.info-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 24px;
+    height: 24px;
+    background-color: var(--highlight-color);
+    color: var(--background-color);
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.tooltip {
+    visibility: hidden;
+    width: 250px;
+    background-color: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 10;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-container:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--tooltip-bg) transparent transparent transparent;
+}
+
+/* Code Blocks */
+.code-block {
+    background-color: #0d1117;
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    position: relative;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+}
+
+code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    color: #e6edf3;
+}
+
+.copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: var(--border-color);
+    color: #c9d1d9;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.copy-btn:hover {
+    background-color: #8b949e;
+    color: #fff;
+}
+
+/* Images */
+.image-wrapper {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.image-wrapper img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.caption {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #8b949e;
+    font-style: italic;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 2rem;
+    color: #8b949e;
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* FAQ / Troubleshooting */
+.faq-item {
+    background-color: #0d1117;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 0.8rem;
+    overflow: hidden;
+}
+
+.faq-item summary {
+    padding: 1rem;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.02);
+    transition: background 0.2s;
+    list-style: none;
+    /* Hide default triangle */
+    font-weight: 500;
+}
+
+.faq-item summary:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.faq-item p {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    color: #8b949e;
+    font-size: 0.95rem;
+}

@@ -48,8 +48,20 @@
             <a href="#troubleshoot" class="nav-item">
                 <span class="step-num">08</span> Errors
             </a>
-            <a href="#lessons" class="nav-item">
-                <span class="step-num">09</span> Lessons
+            <a href="#docker-secrets" class="nav-item">
+                <span class="step-num">09</span> Docker Secrets
+            </a>
+            <a href="#github-env" class="nav-item">
+                <span class="step-num">10</span> Github Env
+            </a>
+            <a href="#java-compat" class="nav-item">
+                <span class="step-num">11</span> Java Compat
+            </a>
+            <a href="#api-keys" class="nav-item">
+                <span class="step-num">12</span> API Keys
+            </a>
+            <a href="#ui-tests" class="nav-item">
+                <span class="step-num">13</span> UI Tests
             </a>
         </nav>
     </aside>
@@ -421,21 +433,16 @@ jobs:
                 </div>
             </section>
 
-            <!-- SECTION 9: LESSONS LEARNED -->
-            <section id="lessons" class="step-section">
+            <!-- SECTION 9: DOCKER BUILD SECRETS -->
+            <section id="docker-secrets" class="step-section">
                 <div class="step-header">
-                    <h2>9. CI/CD & Testing Lessons Learned</h2>
+                    <h2>9. Docker Build Arguments and Secrets</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
-                        <div class="tooltip">Key learnings and solutions encountered while setting up the pipeline.
-                        </div>
+                        <div class="tooltip">How to safely pass secrets during docker build.</div>
                     </div>
                 </div>
                 <div class="step-content">
-                    <p>This section summarizes key learnings and solutions encountered while setting up a containerized
-                        CI pipeline with GitHub Actions, Docker, and Karate.</p>
-
-                    <h3>1. Docker Build Arguments and Secrets</h3>
                     <p><strong>Issue:</strong> Passing secrets as build arguments to <code>docker build</code> via shell
                         commands is prone to errors (e.g., <code>docker buildx build requires 1 argument</code>) due to
                         quoting and shell expansion.</p>
@@ -451,8 +458,19 @@ jobs:
       REACT_APP_GOOGLE_API_KEY=${{ secrets.REACT_APP_GOOGLE_API_KEY }}</code></pre>
                         <button class="copy-btn">Copy</button>
                     </div>
+                </div>
+            </section>
 
-                    <h3>2. GitHub Environments</h3>
+            <!-- SECTION 10: GITHUB ENVIRONMENTS -->
+            <section id="github-env" class="step-section">
+                <div class="step-header">
+                    <h2>10. GitHub Environments</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Accessing environment-specific secrets.</div>
+                    </div>
+                </div>
+                <div class="step-content">
                     <p><strong>Issue:</strong> Secrets defined in a specific GitHub Environment (e.g., <code>CI</code>)
                         are not accessible to the workflow job unless the job explicitly references that environment.
                     </p>
@@ -466,8 +484,19 @@ jobs:
       ...</code></pre>
                         <button class="copy-btn">Copy</button>
                     </div>
+                </div>
+            </section>
 
-                    <h3>3. Java Version Compatibility</h3>
+            <!-- SECTION 11: JAVA VERSION -->
+            <section id="java-compat" class="step-section">
+                <div class="step-header">
+                    <h2>11. Java Version Compatibility</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Ensuring tools have the correct Java runtime.</div>
+                    </div>
+                </div>
+                <div class="step-content">
                     <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
                         default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
                     <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
@@ -479,35 +508,62 @@ jobs:
     java-version: '17'</code></pre>
                         <button class="copy-btn">Copy</button>
                     </div>
+                </div>
+            </section>
 
-                    <h3>4. Testing with Restricted API Keys</h3>
+            <!-- SECTION 12: API KEYS -->
+            <section id="api-keys" class="step-section">
+                <div class="step-header">
+                    <h2>12. Testing with Restricted API Keys</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Handling referrer restrictions in automated tests.</div>
+                    </div>
+                </div>
+                <div class="step-content">
                     <p><strong>Issue:</strong> Frontend API keys often have "Referrer Restrictions" (e.g., allow
-                        <code>localhost:3000</code>).</p>
+                        <code>localhost:3000</code>).
+                    </p>
                     <ul>
                         <li><strong>Problem A:</strong> Direct API calls (backend-style) from tests lack the
-                            <code>Referer</code> header and fail with <code>REQUEST_DENIED</code>.</li>
+                            <code>Referer</code> header and fail with <code>REQUEST_DENIED</code>.
+                        </li>
                         <li><strong>Problem B:</strong> Some Google Web Services (Places/Directions Web Service)
                             strictly reject frontend keys regardless of headers.</li>
                     </ul>
                     <p><strong>Solutions:</strong></p>
                     <ul>
                         <li><strong>Add Headers:</strong> For permitted APIs, add the header in the test background:
-                            <code>* header Referer = 'http://localhost:3000/'</code>.</li>
+                            <code>* header Referer = 'http://localhost:3000/'</code>.
+                        </li>
                         <li><strong>Ignore Invalid Tests:</strong> If the key is strictly frontend-only, do not run
                             direct backend API tests. Use <code>@ignore</code> tags.</li>
                     </ul>
+                </div>
+            </section>
 
-                    <h3>5. Headless Chrome Stability (UI Tests)</h3>
+            <!-- SECTION 13: UI TESTS -->
+            <section id="ui-tests" class="step-section">
+                <div class="step-header">
+                    <h2>13. Headless Chrome Stability</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Making UI tests robust in headless CI.</div>
+                    </div>
+                </div>
+                <div class="step-content">
                     <p><strong>Issue:</strong> UI tests that pass locally often fail in headless CI environments due to
                         race conditions or rendering differences.</p>
                     <p><strong>Solutions:</strong></p>
                     <ul>
                         <li><strong>Explicit Waits:</strong> Never assume an element is ready. Use
-                            <code>waitFor('#id')</code> or <code>waitFor("//xpath")</code>.</li>
+                            <code>waitFor('#id')</code> or <code>waitFor("//xpath")</code>.
+                        </li>
                         <li><strong>Robust Selectors:</strong> Material UI and other frameworks often nest text.
                             <ul>
                                 <li><em>Bad:</em> <code>//button[text()='Clear']</code> (Fails if text is in a
-                                    <code>&lt;span&gt;</code>)</li>
+                                    <code>&lt;span&gt;</code>)
+                                </li>
                                 <li><em>Good:</em> <code>//button[contains(., 'Clear')]</code> (Checks text content of
                                     element and children)</li>
                             </ul>

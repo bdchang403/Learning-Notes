@@ -48,6 +48,9 @@
             <a href="#troubleshoot" class="nav-item">
                 <span class="step-num">08</span> Errors
             </a>
+            <a href="#lessons" class="nav-item">
+                <span class="step-num">09</span> Lessons
+            </a>
         </nav>
     </aside>
 
@@ -415,6 +418,107 @@ jobs:
                         <p><strong>Cause:</strong> <code>COPY . .</code> failing? Check your <code>.dockerignore</code>
                             file.</p>
                     </details>
+                </div>
+            </section>
+
+            <!-- SECTION 9: LESSONS LEARNED -->
+            <section id="lessons" class="step-section">
+                <div class="step-header">
+                    <h2>9. CI/CD & Testing Lessons Learned</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Key learnings and solutions encountered while setting up the pipeline.
+                        </div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>This section summarizes key learnings and solutions encountered while setting up a containerized
+                        CI pipeline with GitHub Actions, Docker, and Karate.</p>
+
+                    <h3>1. Docker Build Arguments and Secrets</h3>
+                    <p><strong>Issue:</strong> Passing secrets as build arguments to <code>docker build</code> via shell
+                        commands is prone to errors (e.g., <code>docker buildx build requires 1 argument</code>) due to
+                        quoting and shell expansion.</p>
+                    <p><strong>Solution:</strong> Use the official <code>docker/build-push-action</code>. It handles
+                        secret injection safely and correctly parses arguments.</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">- name: Build App Image
+  uses: docker/build-push-action@v5
+  with:
+    context: .
+    load: true # Keeps image available for subsequent steps
+    build-args: |
+      REACT_APP_GOOGLE_API_KEY=${{ secrets.REACT_APP_GOOGLE_API_KEY }}</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+
+                    <h3>2. GitHub Environments</h3>
+                    <p><strong>Issue:</strong> Secrets defined in a specific GitHub Environment (e.g., <code>CI</code>)
+                        are not accessible to the workflow job unless the job explicitly references that environment.
+                    </p>
+                    <p><strong>Solution:</strong> Add the <code>environment</code> property to the job configuration.
+                    </p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">jobs:
+  test:
+    environment: CI
+    steps:
+      ...</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+
+                    <h3>3. Java Version Compatibility</h3>
+                    <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
+                        default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
+                    <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
+                        (<code>actions/setup-java</code>) and the Maven configuration
+                        (<code>maven-compiler-plugin</code>).</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">- uses: actions/setup-java@v4
+  with:
+    java-version: '17'</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+
+                    <h3>4. Testing with Restricted API Keys</h3>
+                    <p><strong>Issue:</strong> Frontend API keys often have "Referrer Restrictions" (e.g., allow
+                        <code>localhost:3000</code>).</p>
+                    <ul>
+                        <li><strong>Problem A:</strong> Direct API calls (backend-style) from tests lack the
+                            <code>Referer</code> header and fail with <code>REQUEST_DENIED</code>.</li>
+                        <li><strong>Problem B:</strong> Some Google Web Services (Places/Directions Web Service)
+                            strictly reject frontend keys regardless of headers.</li>
+                    </ul>
+                    <p><strong>Solutions:</strong></p>
+                    <ul>
+                        <li><strong>Add Headers:</strong> For permitted APIs, add the header in the test background:
+                            <code>* header Referer = 'http://localhost:3000/'</code>.</li>
+                        <li><strong>Ignore Invalid Tests:</strong> If the key is strictly frontend-only, do not run
+                            direct backend API tests. Use <code>@ignore</code> tags.</li>
+                    </ul>
+
+                    <h3>5. Headless Chrome Stability (UI Tests)</h3>
+                    <p><strong>Issue:</strong> UI tests that pass locally often fail in headless CI environments due to
+                        race conditions or rendering differences.</p>
+                    <p><strong>Solutions:</strong></p>
+                    <ul>
+                        <li><strong>Explicit Waits:</strong> Never assume an element is ready. Use
+                            <code>waitFor('#id')</code> or <code>waitFor("//xpath")</code>.</li>
+                        <li><strong>Robust Selectors:</strong> Material UI and other frameworks often nest text.
+                            <ul>
+                                <li><em>Bad:</em> <code>//button[text()='Clear']</code> (Fails if text is in a
+                                    <code>&lt;span&gt;</code>)</li>
+                                <li><em>Good:</em> <code>//button[contains(., 'Clear')]</code> (Checks text content of
+                                    element and children)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Mock Blocking functions:</strong> <code>window.alert</code> can block the execution
+                            thread in headless mode. Overwrite it to prevent hangs if an error occurs.
+                            <ul>
+                                <li><em>Karate Example:</em> <code>* script("window.alert = function(){}")</code></li>
+                            </ul>
+                        </li>
+                    </ul>
                 </div>
             </section>
 

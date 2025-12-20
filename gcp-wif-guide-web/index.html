@@ -365,8 +365,12 @@ jobs:
                 </div>
                 <div class="step-content">
                     <p><strong>Issue:</strong> Passing secrets as build arguments to <code>docker build</code> via shell
-                        commands is prone to errors (e.g., <code>docker buildx build requires 1 argument</code>) due to
-                        quoting and shell expansion.</p>
+                        commands is prone to errors due to quoting and shell expansion.</p>
+                    <p><strong>Symptoms:</strong> You might see obscure syntax errors in your build log like:</p>
+                    <pre><code class="language-bash">docker: "build" requires 1 argument.
+See 'docker build --help'.</code></pre>
+                    <p>Or, if the build succeeds, your application crashes at runtime because the secret variable is
+                        empty.</p>
                     <p><strong>Solution:</strong> Use the official <code>docker/build-push-action</code>. It handles
                         secret injection safely and correctly parses arguments.</p>
                     <div class="code-block">
@@ -395,6 +399,9 @@ jobs:
                     <p><strong>Issue:</strong> Secrets defined in a specific GitHub Environment (e.g., <code>CI</code>)
                         are not accessible to the workflow job unless the job explicitly references that environment.
                     </p>
+                    <p><strong>Symptoms:</strong> Your workflow runs, but steps that need the secret fail. If you print
+                        the secret (be careful!), it is empty. Your app logs might say:</p>
+                    <pre><code>Error: GOOGLE_API_KEY is not set</code></pre>
                     <p><strong>Solution:</strong> Add the <code>environment</code> property to the job configuration.
                     </p>
                     <div class="code-block">
@@ -420,6 +427,10 @@ jobs:
                 <div class="step-content">
                     <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
                         default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
+                    <p><strong>Symptoms:</strong> The build fails immediately with a class version error:</p>
+                    <pre><code>java.lang.UnsupportedClassVersionError: 
+com/intuit/karate/Main has been compiled by a more recent version 
+of the Java Runtime (class file version 61.0)...</code></pre>
                     <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
                         (<code>actions/setup-java</code>) and the Maven configuration
                         (<code>maven-compiler-plugin</code>).</p>
@@ -445,9 +456,15 @@ jobs:
                     <p><strong>Issue:</strong> Frontend API keys often have "Referrer Restrictions" (e.g., allow
                         <code>localhost:3000</code>).
                     </p>
+                    <p><strong>Symptoms:</strong> Your API tests fail with a <strong>403 Forbidden</strong> status code.
+                        The response body explicitly mentions restrictions:</p>
+                    <pre><code class="language-json">{
+  "error_message": "API keys with referer restrictions cannot be used with this API.",
+  "status": "REQUEST_DENIED"
+}</code></pre>
                     <ul>
                         <li><strong>Problem A:</strong> Direct API calls (backend-style) from tests lack the
-                            <code>Referer</code> header and fail with <code>REQUEST_DENIED</code>.
+                            <code>Referer</code> header.
                         </li>
                         <li><strong>Problem B:</strong> Some Google Web Services (Places/Directions Web Service)
                             strictly reject frontend keys regardless of headers.</li>
@@ -475,6 +492,13 @@ jobs:
                 <div class="step-content">
                     <p><strong>Issue:</strong> UI tests that pass locally often fail in headless CI environments due to
                         race conditions or rendering differences.</p>
+                    <p><strong>Symptoms:</strong> The test report shows random failures only in CI. Screenshots taken
+                        during failure might show:</p>
+                    <ul>
+                        <li>A blank page (the element hasn't loaded yet).</li>
+                        <li>A different element being clicked because the intended one wasn't ready.</li>
+                    </ul>
+                    <p>Logs often show <code>js.lang.RuntimeException: js eval failed</code> or timeout errors.</p>
                     <p><strong>Solutions:</strong></p>
                     <ul>
                         <li><strong>Explicit Waits:</strong> Never assume an element is ready. Use
@@ -513,6 +537,9 @@ jobs:
                 <div class="step-content">
                     <details class="faq-item">
                         <summary><strong>1. Container failed to start (PORT 8080)</strong></summary>
+                        <p><strong>Error Log:</strong>
+                            <code>Cloud Run error: Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.</code>
+                        </p>
                         <p><strong>Cause:</strong> Your app isn't listening on the environment variable
                             <code>$PORT</code>
                             (default 8080). <br><strong>Fix:</strong> Change your code to listen on
@@ -522,6 +549,9 @@ jobs:
 
                     <details class="faq-item">
                         <summary><strong>2. Permission 'run.admin' missing</strong></summary>
+                        <p><strong>Error Log:</strong>
+                            <code>PERMISSION_DENIED: The caller does not have permission</code> during the deploy step.
+                        </p>
                         <p><strong>Fix:</strong> Give the Service Account the role:
                             <br><code>gcloud projects add-iam-policy-binding ... --role="roles/run.admin"</code>
                         </p>
@@ -555,6 +585,8 @@ jobs:
 
                     <details class="faq-item">
                         <summary><strong>7. Region Mismatch</strong></summary>
+                        <p><strong>Error Log:</strong> <code>Image '...' not found</code> or
+                            <code>Manifest not found</code>.</p>
                         <p><strong>Cause:</strong> Artifact in <code>us-east1</code> but deploying to
                             <code>us-central1</code>.
                         </p>
@@ -562,6 +594,7 @@ jobs:
 
                     <details class="faq-item">
                         <summary><strong>8. API not enabled</strong></summary>
+                        <p><strong>Error Log:</strong> <code>API [run.googleapis.com] not enabled on project.</code></p>
                         <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
                     </details>
 

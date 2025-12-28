@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guide for setting up first Github Project</title>
+    <title>Full Stack CI/CD Guide: Local to Cloud</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <meta name="description"
-        content="Step-by-step interactive guide to setting up Workload Identity Federation between GitHub and Google Cloud.">
+        content="Step-by-step interactive guide: Local React development, robust CI testing, and secure Keyless Google Cloud deployment.">
 </head>
 
 <body>
@@ -21,7 +21,7 @@
 
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
-            <div class="logo">Guide for setting up first Github Project</div>
+            <div class="logo">Full Stack CI/CD Guide</div>
         </div>
         <nav class="sidebar-nav">
             <a href="#github" class="nav-item">
@@ -37,7 +37,7 @@
                 <span class="step-num">04</span> Java Compat
             </a>
             <a href="#blank-page" class="nav-item">
-                <span class="step-num">05</span> Blank Page
+                <span class="step-num">05</span> Local Pitfalls
             </a>
             <a href="#gcp-setup" class="nav-item">
                 <span class="step-num">06</span> GCP Setup
@@ -72,26 +72,28 @@
     <div class="main-content">
         <header class="hero">
             <div class="container">
-                <h1>Secure CI/CD with Github Action and Google Cloud</h1>
+                <h1>From Local React to Cloud Run</h1>
 
                 <div class="learning-intro">
                     <div class="intro-block">
                         <h3>Learning Objectives</h3>
-                        <ul>
-                            <li><span class="highlight-icon">✓</span> Configure a secure connection between GitHub and
-                                Google Cloud.</li>
-                            <li><span class="highlight-icon">✓</span> Implement "Keyless" authentication using Workload
-                                Identity Federation.</li>
-                            <li><span class="highlight-icon">✓</span> Automate container deployment to Cloud Run.</li>
-                        </ul>
+                        <li><span class="highlight-icon">✓</span> Debug and fix common local development issues (Ports,
+                            IPv6, Imports).</li>
+                        <li><span class="highlight-icon">✓</span> Configure robust headless UI tests for CI
+                            environments.</li>
+                        <li><span class="highlight-icon">✓</span> Configure a secure connection between GitHub and
+                            Google Cloud.</li>
+                        <li><span class="highlight-icon">✓</span> Implement "Keyless" authentication using Workload
+                            Identity Federation.</li>
+                        <li><span class="highlight-icon">✓</span> Automate container deployment to Cloud Run.</li>
                     </div>
 
                     <div class="intro-block">
                         <h3>Rationale</h3>
                         <p>Google Cloud Platform (GCP) provides scalable infrastructure and advanced security features.
-                            By integrating GitHub Actions with Google Cloud, we can automate the delivery of our
-                            applications using industry-standard DevOps practices, ensuring reliability and speed
-                            without compromising security.</p>
+                            True reliability starts locally. This guide covers the full journey: fixing local React
+                            "blank pages", handling API keys safely, and orchestrating a secure, keyless deployment
+                            pipeline using industry-standard DevOps practices.</p>
                     </div>
                 </div>
             </div>
@@ -235,7 +237,7 @@ of the Java Runtime (class file version 61.0)...</code></pre>
             <!-- SECTION 5: BLANK PAGE (Was 13) -->
             <section id="blank-page" class="step-section">
                 <div class="step-header">
-                    <h2>5. Local Development: The "Blank Page of Death"</h2>
+                    <h2>5. Local Development Pitfalls</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Common issues when running React/Vite locally.</div>
@@ -487,7 +489,7 @@ jobs:
             <!-- SECTION 11: DOCKER SECRETS (Was 8) -->
             <section id="docker-secrets" class="step-section">
                 <div class="step-header">
-                    <h2>11. Docker Build Arguments and Secrets</h2>
+                    <h2>11. Docker Build Arguments & Secrets</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">How to safely pass secrets during docker build.</div>

@@ -27,41 +27,44 @@
             <a href="#github" class="nav-item">
                 <span class="step-num">01</span> GitHub
             </a>
-            <a href="#gcp-setup" class="nav-item">
-                <span class="step-num">02</span> GCP Setup
-            </a>
-            <a href="#wif" class="nav-item">
-                <span class="step-num">03</span> WIF Setup
-            </a>
-            <a href="#iam" class="nav-item">
-                <span class="step-num">04</span> IAM Roles
-            </a>
-            <a href="#artifact" class="nav-item">
-                <span class="step-num">05</span> Artifacts
-            </a>
-            <a href="#actions" class="nav-item">
-                <span class="step-num">06</span> Actions
-            </a>
-            <a href="#cloudrun" class="nav-item">
-                <span class="step-num">07</span> Cloud Run
-            </a>
-            <a href="#docker-secrets" class="nav-item">
-                <span class="step-num">08</span> Docker Secrets
-            </a>
-            <a href="#github-env" class="nav-item">
-                <span class="step-num">09</span> Github Env
-            </a>
-            <a href="#java-compat" class="nav-item">
-                <span class="step-num">10</span> Java Compat
+            <a href="#ui-tests" class="nav-item">
+                <span class="step-num">02</span> UI Tests
             </a>
             <a href="#api-keys" class="nav-item">
-                <span class="step-num">11</span> API Keys
+                <span class="step-num">03</span> API Keys
             </a>
-            <a href="#ui-tests" class="nav-item">
-                <span class="step-num">12</span> UI Tests
+            <a href="#java-compat" class="nav-item">
+                <span class="step-num">04</span> Java Compat
+            </a>
+            <a href="#blank-page" class="nav-item">
+                <span class="step-num">05</span> Blank Page
+            </a>
+            <a href="#gcp-setup" class="nav-item">
+                <span class="step-num">06</span> GCP Setup
+            </a>
+            <a href="#wif" class="nav-item">
+                <span class="step-num">07</span> WIF Setup
+            </a>
+            <a href="#iam" class="nav-item">
+                <span class="step-num">08</span> IAM Roles
+            </a>
+            <a href="#artifact" class="nav-item">
+                <span class="step-num">09</span> Artifacts
+            </a>
+            <a href="#actions" class="nav-item">
+                <span class="step-num">10</span> Actions
+            </a>
+            <a href="#docker-secrets" class="nav-item">
+                <span class="step-num">11</span> Docker Secrets
+            </a>
+            <a href="#github-env" class="nav-item">
+                <span class="step-num">12</span> Github Env
+            </a>
+            <a href="#cloudrun" class="nav-item">
+                <span class="step-num">13</span> Cloud Run
             </a>
             <a href="#troubleshoot" class="nav-item">
-                <span class="step-num">13</span> Errors
+                <span class="step-num">14</span> Errors
             </a>
         </nav>
     </aside>
@@ -121,10 +124,167 @@
                 </div>
             </section>
 
-            <!-- SECTION 2: GCP SETUP -->
+            <!-- SECTION 2: UI TESTS (Was 12) -->
+            <section id="ui-tests" class="step-section">
+                <div class="step-header">
+                    <h2>2. Headless Chrome Stability</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Making UI tests robust in headless CI.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> UI tests that pass locally often fail in headless CI environments due to
+                        race conditions or rendering differences.</p>
+                    <p><strong>Symptoms:</strong> The test report shows random failures only in CI. Screenshots taken
+                        during failure might show:</p>
+                    <ul>
+                        <li>A blank page (the element hasn't loaded yet).</li>
+                        <li>A different element being clicked because the intended one wasn't ready.</li>
+                    </ul>
+                    <p>Logs often show <code>js.lang.RuntimeException: js eval failed</code> or timeout errors.</p>
+                    <p><strong>Solutions:</strong></p>
+                    <ul>
+                        <li><strong>Explicit Waits:</strong> Never assume an element is ready. Use
+                            <code>waitFor('#id')</code> or <code>waitFor("//xpath")</code>.
+                        </li>
+                        <li><strong>Robust Selectors:</strong> Material UI and other frameworks often nest text.
+                            <ul>
+                                <li><em>Bad:</em> <code>//button[text()='Clear']</code> (Fails if text is in a
+                                    <code>&lt;span&gt;</code>)
+                                </li>
+                                <li><em>Good:</em> <code>//button[contains(., 'Clear')]</code> (Checks text content of
+                                    element and children)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Mock Blocking functions:</strong> <code>window.alert</code> can block the execution
+                            thread in headless mode. Overwrite it to prevent hangs if an error occurs.
+                            <ul>
+                                <li><em>Karate Example:</em> <code>* script("window.alert = function(){}")</code></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SECTION 3: API KEYS (Was 11) -->
+            <section id="api-keys" class="step-section">
+                <div class="step-header">
+                    <h2>3. Testing with Restricted API Keys</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Handling referrer restrictions in automated tests.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> Frontend API keys often have "Referrer Restrictions" (e.g., allow
+                        <code>localhost:3000</code>).
+                    </p>
+                    <p><strong>Symptoms:</strong> Your API tests fail with a <strong>403 Forbidden</strong> status code.
+                        The response body explicitly mentions restrictions:</p>
+                    <pre><code class="language-json">{
+  "error_message": "API keys with referer restrictions cannot be used with this API.",
+  "status": "REQUEST_DENIED"
+}</code></pre>
+                    <ul>
+                        <li><strong>Problem A:</strong> Direct API calls (backend-style) from tests lack the
+                            <code>Referer</code> header.
+                        </li>
+                        <li><strong>Problem B:</strong> Some Google Web Services (Places/Directions Web Service)
+                            strictly reject frontend keys regardless of headers.</li>
+                    </ul>
+                    <p><strong>Solutions:</strong></p>
+                    <ul>
+                        <li><strong>Add Headers:</strong> For permitted APIs, add the header in the test background:
+                            <code>* header Referer = 'http://localhost:3000/'</code>.
+                        </li>
+                        <li><strong>Ignore Invalid Tests:</strong> If the key is strictly frontend-only, do not run
+                            direct backend API tests. Use <code>@ignore</code> tags.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SECTION 4: JAVA VERSION (Was 10) -->
+            <section id="java-compat" class="step-section">
+                <div class="step-header">
+                    <h2>4. Java Version Compatibility</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Ensuring tools have the correct Java runtime.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
+                        default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
+                    <p><strong>Symptoms:</strong> The build fails immediately with a class version error:</p>
+                    <pre><code>java.lang.UnsupportedClassVersionError: 
+com/intuit/karate/Main has been compiled by a more recent version 
+of the Java Runtime (class file version 61.0)...</code></pre>
+                    <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
+                        (<code>actions/setup-java</code>) and the Maven configuration
+                        (<code>maven-compiler-plugin</code>).</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">- uses: actions/setup-java@v4
+  with:
+    java-version: '17'</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: BLANK PAGE (Was 13) -->
+            <section id="blank-page" class="step-section">
+                <div class="step-header">
+                    <h2>5. Local Development: The "Blank Page of Death"</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Common issues when running React/Vite locally.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <details class="faq-item">
+                        <summary><strong>1. The "Default Port" Trap</strong></summary>
+                        <p><strong>Symptom:</strong> App opens on 5174 instead of 5173. Bookmarks break.</p>
+                        <p><strong>Fix:</strong> Enforce strict port in <code>vite.config.js</code>:
+                            <br><code>server: { port: 5173, strictPort: true }</code>
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>2. The 20-Second Delay (IPv6)</strong></summary>
+                        <p><strong>Symptom:</strong> App hangs for 20s before loading.</p>
+                        <p><strong>Cause:</strong> Node trying to resolve localhost via IPv6.</p>
+                        <p><strong>Fix:</strong> Force IPv4 in <code>vite.config.js</code>:
+                            <br><code>server: { host: '127.0.0.1' }</code>
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>3. The "Silent Crash" (Import Errors)</strong></summary>
+                        <p><strong>Symptom:</strong> Instant white screen. No Error Boundary.</p>
+                        <p><strong>Cause:</strong> Static import failed (e.g. typo) before React could start.</p>
+                        <p><strong>Fix:</strong> Run <code>npm run build</code> to catch these errors.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>4. The "React Crash" (Runtime Errors)</strong></summary>
+                        <p><strong>Symptom:</strong> White screen with console errors.</p>
+                        <p><strong>Fix:</strong> Wrap app in a Global Error Boundary.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>5. The "Nuclear Option"</strong></summary>
+                        <p>Unsure if it's code or server? Replace <code>main.jsx</code> content with:</p>
+                        <p><code>document.body.innerHTML = "<h1>IT WORKS</h1>";</code></p>
+                        <p>If it works -> Your React code is broken. If it fails -> Server/Env is broken.</p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- SECTION 6: GCP SETUP (Was 2) -->
             <section id="gcp-setup" class="step-section">
                 <div class="step-header">
-                    <h2>2. Google Cloud Setup</h2>
+                    <h2>6. Google Cloud Setup</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? We need to tell Google Cloud to activate the specific services (APIs)
@@ -154,10 +314,10 @@ export USER_NAME="your-github-username"</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 3: WIF -->
+            <!-- SECTION 7: WIF (Was 3) -->
             <section id="wif" class="step-section">
                 <div class="step-header">
-                    <h2>3. Workload Identity Federation</h2>
+                    <h2>7. Workload Identity Federation</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Required because: This establishes a "trust relationship" so Google Cloud
@@ -192,10 +352,10 @@ export USER_NAME="your-github-username"</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 4: IAM -->
+            <!-- SECTION 8: IAM (Was 4) -->
             <section id="iam" class="step-section">
                 <div class="step-header">
-                    <h2>4. Service Account & IAM</h2>
+                    <h2>8. Service Account & IAM</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? The "Service Account" is the actual GCP user that performs the work
@@ -235,10 +395,10 @@ gcloud iam service-accounts create "${SERVICE_ACCOUNT}" \
                 </div>
             </section>
 
-            <!-- SECTION 5: ARTIFACT REGISTRY -->
+            <!-- SECTION 9: ARTIFACT REGISTRY (Was 5) -->
             <section id="artifact" class="step-section">
                 <div class="step-header">
-                    <h2>5. Artifact Registry</h2>
+                    <h2>9. Artifact Registry</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? We need a private, secure place to store our Docker container images,
@@ -263,10 +423,10 @@ gcloud artifacts repositories create "${AR_REPO}" \
                 </div>
             </section>
 
-            <!-- SECTION 6: ACTIONS -->
+            <!-- SECTION 10: ACTIONS (Was 6) -->
             <section id="actions" class="step-section">
                 <div class="step-header">
-                    <h2>6. GitHub Actions Workflow</h2>
+                    <h2>10. GitHub Actions Workflow</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? This YAML file tells GitHub *exactly* what steps to run automatically
@@ -324,40 +484,10 @@ jobs:
                 </div>
             </section>
 
-            <!-- SECTION 7: CLOUD RUN -->
-            <section id="cloudrun" class="step-section">
-                <div class="step-header">
-                    <h2>7. Deploy to Cloud Run</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Why? Cloud Run is "serverless". It takes your Docker container and runs it
-                            on a
-                            URL instantly without you managing servers.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p>Update your workflow file to add the deploy step:</p>
-                    <div class="code-block">
-                        <pre><code class="language-yaml">      - name: Deploy to Cloud Run
-        id: deploy
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: my-app-service
-          region: ${{ env.REGION }}
-          image: ${{ env.GAR_LOCATION }}/my-app:${{ github.sha }}
-          flags: '--allow-unauthenticated'</code></pre>
-                        <button class="copy-btn">Copy</button>
-                    </div>
-                    <p><strong>To Kick-start:</strong> Commit and push these changes to your <code>main</code> branch.
-                        Go to
-                        the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
-                </div>
-            </section>
-
-            <!-- SECTION 8: DOCKER BUILD SECRETS -->
+            <!-- SECTION 11: DOCKER SECRETS (Was 8) -->
             <section id="docker-secrets" class="step-section">
                 <div class="step-header">
-                    <h2>8. Docker Build Arguments and Secrets</h2>
+                    <h2>11. Docker Build Arguments and Secrets</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">How to safely pass secrets during docker build.</div>
@@ -386,10 +516,10 @@ See 'docker build --help'.</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 9: GITHUB ENVIRONMENTS -->
+            <!-- SECTION 12: GITHUB ENVIRONMENTS (Was 9) -->
             <section id="github-env" class="step-section">
                 <div class="step-header">
-                    <h2>9. GitHub Environments</h2>
+                    <h2>12. GitHub Environments</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Accessing environment-specific secrets.</div>
@@ -415,118 +545,40 @@ See 'docker build --help'.</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 10: JAVA VERSION -->
-            <section id="java-compat" class="step-section">
+            <!-- SECTION 13: CLOUD RUN (Was 7) -->
+            <section id="cloudrun" class="step-section">
                 <div class="step-header">
-                    <h2>10. Java Version Compatibility</h2>
+                    <h2>13. Deploy to Cloud Run</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
-                        <div class="tooltip">Ensuring tools have the correct Java runtime.</div>
+                        <div class="tooltip">Why? Cloud Run is "serverless". It takes your Docker container and runs it
+                            on a
+                            URL instantly without you managing servers.</div>
                     </div>
                 </div>
                 <div class="step-content">
-                    <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
-                        default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
-                    <p><strong>Symptoms:</strong> The build fails immediately with a class version error:</p>
-                    <pre><code>java.lang.UnsupportedClassVersionError: 
-com/intuit/karate/Main has been compiled by a more recent version 
-of the Java Runtime (class file version 61.0)...</code></pre>
-                    <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
-                        (<code>actions/setup-java</code>) and the Maven configuration
-                        (<code>maven-compiler-plugin</code>).</p>
+                    <p>Update your workflow file to add the deploy step:</p>
                     <div class="code-block">
-                        <pre><code class="language-yaml">- uses: actions/setup-java@v4
-  with:
-    java-version: '17'</code></pre>
+                        <pre><code class="language-yaml">      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: my-app-service
+          region: ${{ env.REGION }}
+          image: ${{ env.GAR_LOCATION }}/my-app:${{ github.sha }}
+          flags: '--allow-unauthenticated'</code></pre>
                         <button class="copy-btn">Copy</button>
                     </div>
+                    <p><strong>To Kick-start:</strong> Commit and push these changes to your <code>main</code> branch.
+                        Go to
+                        the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
                 </div>
             </section>
 
-            <!-- SECTION 11: API KEYS -->
-            <section id="api-keys" class="step-section">
-                <div class="step-header">
-                    <h2>11. Testing with Restricted API Keys</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Handling referrer restrictions in automated tests.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p><strong>Issue:</strong> Frontend API keys often have "Referrer Restrictions" (e.g., allow
-                        <code>localhost:3000</code>).
-                    </p>
-                    <p><strong>Symptoms:</strong> Your API tests fail with a <strong>403 Forbidden</strong> status code.
-                        The response body explicitly mentions restrictions:</p>
-                    <pre><code class="language-json">{
-  "error_message": "API keys with referer restrictions cannot be used with this API.",
-  "status": "REQUEST_DENIED"
-}</code></pre>
-                    <ul>
-                        <li><strong>Problem A:</strong> Direct API calls (backend-style) from tests lack the
-                            <code>Referer</code> header.
-                        </li>
-                        <li><strong>Problem B:</strong> Some Google Web Services (Places/Directions Web Service)
-                            strictly reject frontend keys regardless of headers.</li>
-                    </ul>
-                    <p><strong>Solutions:</strong></p>
-                    <ul>
-                        <li><strong>Add Headers:</strong> For permitted APIs, add the header in the test background:
-                            <code>* header Referer = 'http://localhost:3000/'</code>.
-                        </li>
-                        <li><strong>Ignore Invalid Tests:</strong> If the key is strictly frontend-only, do not run
-                            direct backend API tests. Use <code>@ignore</code> tags.</li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- SECTION 12: UI TESTS -->
-            <section id="ui-tests" class="step-section">
-                <div class="step-header">
-                    <h2>12. Headless Chrome Stability</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Making UI tests robust in headless CI.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p><strong>Issue:</strong> UI tests that pass locally often fail in headless CI environments due to
-                        race conditions or rendering differences.</p>
-                    <p><strong>Symptoms:</strong> The test report shows random failures only in CI. Screenshots taken
-                        during failure might show:</p>
-                    <ul>
-                        <li>A blank page (the element hasn't loaded yet).</li>
-                        <li>A different element being clicked because the intended one wasn't ready.</li>
-                    </ul>
-                    <p>Logs often show <code>js.lang.RuntimeException: js eval failed</code> or timeout errors.</p>
-                    <p><strong>Solutions:</strong></p>
-                    <ul>
-                        <li><strong>Explicit Waits:</strong> Never assume an element is ready. Use
-                            <code>waitFor('#id')</code> or <code>waitFor("//xpath")</code>.
-                        </li>
-                        <li><strong>Robust Selectors:</strong> Material UI and other frameworks often nest text.
-                            <ul>
-                                <li><em>Bad:</em> <code>//button[text()='Clear']</code> (Fails if text is in a
-                                    <code>&lt;span&gt;</code>)
-                                </li>
-                                <li><em>Good:</em> <code>//button[contains(., 'Clear')]</code> (Checks text content of
-                                    element and children)</li>
-                            </ul>
-                        </li>
-                        <li><strong>Mock Blocking functions:</strong> <code>window.alert</code> can block the execution
-                            thread in headless mode. Overwrite it to prevent hangs if an error occurs.
-                            <ul>
-                                <li><em>Karate Example:</em> <code>* script("window.alert = function(){}")</code></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </section>
-
-            <!-- SECTION 13: TROUBLESHOOTING -->
+            <!-- SECTION 14: TROUBLESHOOTING -->
             <section id="troubleshoot" class="step-section">
                 <div class="step-header">
-                    <h2>13. Top 10 Common Errors</h2>
+                    <h2>14. Top 10 Common Errors</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">First deployments fail 90% of the time due to permission logic. Here is how
@@ -619,7 +671,8 @@ of the Java Runtime (class file version 61.0)...</code></pre>
                     <details class="faq-item">
                         <summary><strong>10. Cloud Run Admin API Disabled</strong></summary>
                         <p><strong>Error Log:</strong>
-                            <code>Cloud Run Admin API has not been used in project ... or it is disabled.</code></p>
+                            <code>Cloud Run Admin API has not been used in project ... or it is disabled.</code>
+                        </p>
                         <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
                     </details>
 
@@ -639,46 +692,6 @@ of the Java Runtime (class file version 61.0)...</code></pre>
                         <p><strong>Error Log:</strong> <code>HTTP 403: Resource not accessible by integration</code></p>
                         <p><strong>Cause:</strong> Default GITHUB_TOKEN lacks permissions.</p>
                         <p><strong>Fix:</strong> Use a Personal Access Token (PAT) with <code>repo</code> scope.</p>
-                    </details>
-
-                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Local Development:
-                        The "Blank Page of Death"</h3>
-
-                    <details class="faq-item">
-                        <summary><strong>1. The "Default Port" Trap</strong></summary>
-                        <p><strong>Symptom:</strong> App opens on 5174 instead of 5173. Bookmarks break.</p>
-                        <p><strong>Fix:</strong> Enforce strict port in <code>vite.config.js</code>:
-                            <br><code>server: { port: 5173, strictPort: true }</code>
-                        </p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>2. The 20-Second Delay (IPv6)</strong></summary>
-                        <p><strong>Symptom:</strong> App hangs for 20s before loading.</p>
-                        <p><strong>Cause:</strong> Node trying to resolve localhost via IPv6.</p>
-                        <p><strong>Fix:</strong> Force IPv4 in <code>vite.config.js</code>:
-                            <br><code>server: { host: '127.0.0.1' }</code>
-                        </p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>3. The "Silent Crash" (Import Errors)</strong></summary>
-                        <p><strong>Symptom:</strong> Instant white screen. No Error Boundary.</p>
-                        <p><strong>Cause:</strong> Static import failed (e.g. typo) before React could start.</p>
-                        <p><strong>Fix:</strong> Run <code>npm run build</code> to catch these errors.</p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>4. The "React Crash" (Runtime Errors)</strong></summary>
-                        <p><strong>Symptom:</strong> White screen with console errors.</p>
-                        <p><strong>Fix:</strong> Wrap app in a Global Error Boundary.</p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>5. The "Nuclear Option"</strong></summary>
-                        <p>Unsure if it's code or server? Replace <code>main.jsx</code> content with:</p>
-                        <p><code>document.body.innerHTML = "<h1>IT WORKS</h1>";</code></p>
-                        <p>If it works -> Your React code is broken. If it fails -> Server/Env is broken.</p>
                     </details>
                 </div>
             </section>

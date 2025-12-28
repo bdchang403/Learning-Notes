@@ -535,20 +535,43 @@ of the Java Runtime (class file version 61.0)...</code></pre>
                     </div>
                 </div>
                 <div class="step-content">
+                    <h3 style="color: var(--highlight-color); margin-top: 1rem; margin-bottom: 1rem;">Deployment & CI/CD
+                        Errors</h3>
+
                     <details class="faq-item">
-                        <summary><strong>1. Container failed to start (PORT 8080)</strong></summary>
+                        <summary><strong>1. Container failed to start (App Code)</strong></summary>
                         <p><strong>Error Log:</strong>
                             <code>Cloud Run error: Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.</code>
                         </p>
                         <p><strong>Cause:</strong> Your app isn't listening on the environment variable
-                            <code>$PORT</code>
-                            (default 8080). <br><strong>Fix:</strong> Change your code to listen on
-                            <code>process.env.PORT</code> instead of a hardcoded 3000.
+                            <code>$PORT</code> (default 8080).
+                            <br><strong>Fix:</strong> Change your code to listen on <code>process.env.PORT</code>
+                            instead of a hardcoded 3000.
                         </p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>2. Permission 'run.admin' missing</strong></summary>
+                        <summary><strong>2. Reserved Env Var 'PORT' (Deployment Config)</strong></summary>
+                        <p><strong>Error Log:</strong>
+                            <code>The following reserved env names were provided: PORT. These values are automatically set by the system.</code>
+                        </p>
+                        <p><strong>Cause:</strong> Attempting to set <code>PORT</code> in your GitHub Actions workflow
+                            <code>env</code>.
+                            <br><strong>Fix:</strong> Remove <code>PORT</code> from your workflow's <code>env</code>
+                            section. Cloud Run handles this automatically.
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>3. Artifact Registry Repo Not Found</strong></summary>
+                        <p><strong>Error Log:</strong> <code>name unknown: Repository "..." not found</code></p>
+                        <p><strong>Fix:</strong> Create the repository manually:
+                            <br><code>gcloud artifacts repositories create ...</code>
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>4. Permission 'run.admin' missing</strong></summary>
                         <p><strong>Error Log:</strong>
                             <code>PERMISSION_DENIED: The caller does not have permission</code> during the deploy step.
                         </p>
@@ -558,55 +581,104 @@ of the Java Runtime (class file version 61.0)...</code></pre>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>3. Permission 'iam.serviceAccountUser' missing</strong></summary>
+                        <summary><strong>5. Permission 'iam.serviceAccountUser' missing</strong></summary>
                         <p><strong>Fix:</strong> The Service Account needs permission to "act as" itself.
                             <br><code>gcloud projects add-iam-policy-binding ... --role="roles/iam.serviceAccountUser"</code>
                         </p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>4. Subject Issuer Mismatch</strong></summary>
+                        <summary><strong>6. Subject Issuer Mismatch</strong></summary>
                         <p><strong>Cause:</strong> Typo in the Workload Identity Federation mapping.
                             <br><strong>Fix:</strong> Check if your <code>repo:user/repo</code> casing matches exactly.
                         </p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>5. Permission 'artifactregistry.writer' missing</strong></summary>
+                        <summary><strong>7. Permission 'artifactregistry.writer' missing</strong></summary>
                         <p><strong>Fix:</strong> Ensure SA has <strong>Artifact Registry Writer</strong> role.</p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>6. Org Policy Restricted</strong></summary>
+                        <summary><strong>8. Org Policy Restricted</strong></summary>
                         <p><strong>Cause:</strong> Your company blocks public (unauthenticated) sites.
                             <br><strong>Fix:</strong> Remove <code>--allow-unauthenticated</code> or ask Admin.
                         </p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>7. Region Mismatch</strong></summary>
+                        <summary><strong>9. Region Mismatch</strong></summary>
                         <p><strong>Error Log:</strong> <code>Image '...' not found</code> or
-                            <code>Manifest not found</code>.</p>
+                            <code>Manifest not found</code>.
+                        </p>
                         <p><strong>Cause:</strong> Artifact in <code>us-east1</code> but deploying to
                             <code>us-central1</code>.
                         </p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>8. API not enabled</strong></summary>
-                        <p><strong>Error Log:</strong> <code>API [run.googleapis.com] not enabled on project.</code></p>
+                        <summary><strong>10. Cloud Run Admin API Disabled</strong></summary>
+                        <p><strong>Error Log:</strong>
+                            <code>Cloud Run Admin API has not been used in project ... or it is disabled.</code></p>
                         <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>9. GitHub Secrets Typos</strong></summary>
+                        <summary><strong>11. GitHub Secrets Typos</strong></summary>
                         <p><strong>Tip:</strong> Check for accidental spaces when pasting secrets.</p>
                     </details>
 
                     <details class="faq-item">
-                        <summary><strong>10. Docker Context Error</strong></summary>
+                        <summary><strong>12. Docker Context Error</strong></summary>
                         <p><strong>Cause:</strong> <code>COPY . .</code> failing? Check your <code>.dockerignore</code>
                             file.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>13. Resource not accessible (403)</strong></summary>
+                        <p><strong>Error Log:</strong> <code>HTTP 403: Resource not accessible by integration</code></p>
+                        <p><strong>Cause:</strong> Default GITHUB_TOKEN lacks permissions.</p>
+                        <p><strong>Fix:</strong> Use a Personal Access Token (PAT) with <code>repo</code> scope.</p>
+                    </details>
+
+                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Local Development:
+                        The "Blank Page of Death"</h3>
+
+                    <details class="faq-item">
+                        <summary><strong>1. The "Default Port" Trap</strong></summary>
+                        <p><strong>Symptom:</strong> App opens on 5174 instead of 5173. Bookmarks break.</p>
+                        <p><strong>Fix:</strong> Enforce strict port in <code>vite.config.js</code>:
+                            <br><code>server: { port: 5173, strictPort: true }</code>
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>2. The 20-Second Delay (IPv6)</strong></summary>
+                        <p><strong>Symptom:</strong> App hangs for 20s before loading.</p>
+                        <p><strong>Cause:</strong> Node trying to resolve localhost via IPv6.</p>
+                        <p><strong>Fix:</strong> Force IPv4 in <code>vite.config.js</code>:
+                            <br><code>server: { host: '127.0.0.1' }</code>
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>3. The "Silent Crash" (Import Errors)</strong></summary>
+                        <p><strong>Symptom:</strong> Instant white screen. No Error Boundary.</p>
+                        <p><strong>Cause:</strong> Static import failed (e.g. typo) before React could start.</p>
+                        <p><strong>Fix:</strong> Run <code>npm run build</code> to catch these errors.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>4. The "React Crash" (Runtime Errors)</strong></summary>
+                        <p><strong>Symptom:</strong> White screen with console errors.</p>
+                        <p><strong>Fix:</strong> Wrap app in a Global Error Boundary.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>5. The "Nuclear Option"</strong></summary>
+                        <p>Unsure if it's code or server? Replace <code>main.jsx</code> content with:</p>
+                        <p><code>document.body.innerHTML = "<h1>IT WORKS</h1>";</code></p>
+                        <p>If it works -> Your React code is broken. If it fails -> Server/Env is broken.</p>
                     </details>
                 </div>
             </section>

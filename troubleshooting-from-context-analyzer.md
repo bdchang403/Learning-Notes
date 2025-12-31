@@ -75,6 +75,19 @@ The default `GITHUB_TOKEN` used in GitHub Actions does not have permissions to m
 2.  Add this token as a repository secret named `GH_PAT`.
 3.  Update the workflow to use `${{ secrets.GH_PAT }}` instead of `${{ secrets.GITHUB_TOKEN }}`.
 
+### 7. "gh: command not found"
+**Error:**
+```
+/actions-runner/.../script.sh: line 1: gh: command not found
+```
+**Cause:**
+You are using a self-hosted runner which does not have the GitHub CLI (`gh`) installed by default (unlike GitHub-hosted runners).
+
+**Solution:**
+Install the GitHub CLI in your runner's startup script.
+- **Fix**: The `startup-script.sh` has been updated to install `gh` via `apt`.
+- **Action**: Redeploy your runners to pick up the changes.
+
 ## Local Development: Debugging "Blank Page of Death"
 
 A summary of lessons learned from debugging the Context-Checking Tool. Use this guide when the app server starts but the browser shows a white screen or fails to load.
@@ -271,3 +284,177 @@ We have optimized the architecture to handle this:
 1.  **Idle Timeout**: Runners now stay active for **10 minutes** after a job. This allows consecutive jobs to run instantly (0 latency) and leverage Docker layer caching.
 2.  **Concurrency**: The Managed Instance Group (MIG) size is set to **2**, allowing 2 parallel jobs (or overlapping workflows).
 - **Action**: Ensure you have deployed the latest version of `gcp-runner/deploy.sh` and `startup-script.sh`.
+
+## Reference: Example Scripts
+
+Below are the **sanitized** versions of the deployment scripts used in this solution. You can copy these, but remember to replace placeholders like `YOUR_PROJECT_ID` (though the script fetches it automatically) or repo names if you adaptation them.
+
+### 1. deploy.sh
+```bash
+#!/bin/bash
+# Deploy GCP GitHub Runner Infrastructure (Standard Tier + Persistence)
+
+# Configuration
+PROJECT_ID=$(gcloud config get-value project)
+REGION="us-central1"
+ZONE="us-central1-a"
+TEMPLATE_NAME="gh-runner-template"
+MIG_NAME="gh-runner-mig"
+REPO_OWNER="<YOUR_GITHUB_USERNAME>"
+REPO_NAME="<YOUR_REPO_NAME>"
+
+# Load from .env if it exists
+if [ -f .env ]; then
+    export $(cat .env | xargs)
+fi
+
+# Check if GITHUB_PAT is set, otherwise prompt
+if [ -z "$GITHUB_PAT" ]; then
+    read -s -p "Enter GitHub PAT: " GITHUB_PAT
+    echo ""
+fi
+
+echo "Deploying to Project: $PROJECT_ID"
+
+# 0. Cleanup Existing Resources (to allow upgrades/re-runs)
+echo "Cleaning up existing resources..."
+# Delete MIG if it exists
+if gcloud compute instance-groups managed describe $MIG_NAME --zone=$ZONE --project=$PROJECT_ID &>/dev/null; then
+    echo "Deleting existing MIG: $MIG_NAME"
+    gcloud compute instance-groups managed delete $MIG_NAME --zone=$ZONE --project=$PROJECT_ID --quiet
+fi
+
+# Delete Instance Template if it exists (Global)
+if gcloud compute instance-templates describe $TEMPLATE_NAME --project=$PROJECT_ID &>/dev/null; then
+    echo "Deleting existing Instance Template: $TEMPLATE_NAME"
+    gcloud compute instance-templates delete $TEMPLATE_NAME --project=$PROJECT_ID --quiet
+fi
+
+# 1. Create Instance Template
+echo "Creating Instance Template..."
+gcloud compute instance-templates create $TEMPLATE_NAME \
+    --project=$PROJECT_ID \
+    --machine-type=e2-standard-4 \
+    --network-interface=network-tier=PREMIUM,network=default,address= \
+    --metadata-from-file=startup-script=./startup-script.sh \
+    --metadata=github_pat=$GITHUB_PAT \
+    --maintenance-policy=MIGRATE \
+    --provisioning-model=STANDARD \
+    --service-account=default \
+    --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append \
+    --tags=http-server,https-server \
+    --image-family=ubuntu-2204-lts \
+    --image-project=ubuntu-os-cloud \
+    --boot-disk-size=100GB \
+    --boot-disk-type=pd-balanced \
+    --boot-disk-device-name=$TEMPLATE_NAME
+
+# 2. Create Managed Instance Group (MIG)
+echo "Creating Managed Instance Group..."
+gcloud compute instance-groups managed create $MIG_NAME \
+    --project=$PROJECT_ID \
+    --base-instance-name=gh-runner \
+    --template=$TEMPLATE_NAME \
+    --size=2 \
+    --zone=$ZONE
+
+echo "Deployment Complete."
+```
+
+### 2. startup-script.sh
+```bash
+#!/bin/bash
+# GCP GitHub Runner Startup Script
+# Optimized for e2-standard-4 (4 vCPU, 16 GB RAM) with Idle Timeout
+
+set -e
+
+# --- 1. Swap Configuration ---
+echo "Setting up Swap..."
+# Create 4GB swap file
+fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+sysctl vm.swappiness=60
+echo 'vm.swappiness=60' >> /etc/sysctl.conf
+
+# --- 2. Install Dependencies ---
+echo "Installing Docker, Git, and GitHub CLI..."
+apt-get update
+apt-get install -y docker.io git jq curl
+
+# Install gh CLI
+mkdir -p -m 755 /etc/apt/keyrings
+wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null
+chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+apt-get update
+apt-get install -y gh
+
+systemctl enable --now docker
+
+# --- 3. Install GitHub Runner ---
+echo "Installing GitHub Runner..."
+mkdir /actions-runner && cd /actions-runner
+curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+
+# --- 4. Configuration Variables ---
+GITHUB_REPO="<YOUR_GITHUB_USERNAME>/<YOUR_REPO_NAME>"
+REPO_URL="https://github.com/${GITHUB_REPO}"
+# PAT fetched from Instance Metadata
+PAT=$(curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/github_pat")
+
+if [ -z "$PAT" ]; then
+  echo "Error: github_pat metadata not found."
+  exit 1
+fi
+
+# --- 5. Get Registration Token ---
+echo "Fetching Registration Token..."
+REG_TOKEN=$(curl -s -X POST -H "Authorization: token ${PAT}" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${GITHUB_REPO}/actions/runners/registration-token | jq -r .token)
+
+if [ "$REG_TOKEN" == "null" ]; then
+    echo "Failed to get registration token. Check PAT permissions."
+    exit 1
+fi
+
+# --- 6. Configure & Run (Persistent with Idle Timeout) ---
+echo "Configuring Runner..."
+export RUNNER_ALLOW_RUNASROOT=1
+./config.sh --url ${REPO_URL} --token ${REG_TOKEN} --unattended --name "$(hostname)" --labels "gcp-micro"
+
+echo "Installing Runner as Service..."
+./svc.sh install
+./svc.sh start
+
+# --- 7. Idle Shutdown Monitor ---
+# Monitor for 'Runner.Worker' process which indicates an active job.
+# If no job runs for IDLE_TIMEOUT seconds, shut down.
+IDLE_TIMEOUT=600 # 10 minutes
+CHECK_INTERVAL=30
+IDLE_TIMER=0
+
+echo "Starting Idle Monitor (Timeout: ${IDLE_TIMEOUT}s)..."
+
+while true; do
+  sleep $CHECK_INTERVAL
+  
+  # Check if Runner.Worker is running (indicates active job)
+  if pgrep -f "Runner.Worker" > /dev/null; then
+    echo "Job in progress. Resetting idle timer."
+    IDLE_TIMER=0
+  else
+    IDLE_TIMER=$((IDLE_TIMER + CHECK_INTERVAL))
+    echo "Runner idle for ${IDLE_TIMER}s..."
+  fi
+
+  if [ $IDLE_TIMER -ge $IDLE_TIMEOUT ]; then
+    echo "Idle timeout reached (${IDLE_TIMEOUT}s). Shutting down..."
+    shutdown -h now
+    break
+  fi
+done
+```

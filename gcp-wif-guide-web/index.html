@@ -599,6 +599,8 @@ See 'docker build --help'.</code></pre>
                     <ol>
                         <li><strong>Preparation</strong>: Install <code>gcloud</code> SDK and authenticate
                             (<code>gcloud auth login</code>).</li>
+                        <li><strong>Note</strong>: Ensure you are authenticated before running deployment scripts!
+                        </li>
                         <li><strong>Configuration</strong>: Create a <code>.env</code> file in <code>gcp-runner/</code>
                             to store your GitHub Personal Access Token (PAT).
                             <div class="code-block">
@@ -614,6 +616,24 @@ GITHUB_PAT=ghp_your_token_here</code></pre>
                                 <button class="copy-btn">Copy</button>
                             </div>
                         </li>
+                    </ol>
+
+                    </li>
+                    </ol>
+
+                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Updating Runners
+                        (Lifecycle)</h3>
+                    <p><strong>Crucial Lesson:</strong> Changes to <code>startup-script.sh</code> do
+                        <strong>NOT</strong>
+                        apply to running instances.</p>
+                    <p>To apply changes (e.g., installing new tools), you must <strong>Re-run the Deployment
+                            Script</strong>.
+                        The script handles the lifecycle:</p>
+                    <ol>
+                        <li>Deletes existing Managed Instance Groups (MIG).</li>
+                        <li>Deletes old Instance Templates.</li>
+                        <li>Creates a new Template with the updated script.</li>
+                        <li>Creates a new MIG, provisioning fresh VMs.</li>
                     </ol>
 
                     <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Common Errors</h3>
@@ -670,9 +690,31 @@ GITHUB_PAT=ghp_your_token_here</code></pre>
                     <details class="faq-item">
                         <summary><strong>8. gh: command not found</strong></summary>
                         <p><strong>Error:</strong>
-                            <code>/actions-runner/.../script.sh: line 1: gh: command not found</code></p>
+                            <code>/actions-runner/.../script.sh: line 1: gh: command not found</code>
+                        </p>
                         <p><strong>Cause:</strong> GitHub CLI is not installed by default on self-hosted runners.</p>
                         <p><strong>Fix:</strong> Update <code>startup-script.sh</code> to install `gh`.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>9. Deployment Script Hanging</strong></summary>
+                        <p><strong>Symptoms:</strong> Script hangs at "Cleaning up...".</p>
+                        <p><strong>Cause:</strong> <code>gcloud</code> is waiting for auth input, but output is
+                            suppressed.
+                        </p>
+                        <p><strong>Fix:</strong> Remove <code>&>/dev/null</code> or add an explicit auth check.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>10. CI Failure: "mvn: command not found"</strong></summary>
+                        <p><strong>Cause:</strong> Maven is not installed on the base Ubuntu image.</p>
+                        <p><strong>Fix:</strong> Add <code>apt-get install -y maven</code> to the startup script.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>11. CI Failure: "driver config / start failed"</strong></summary>
+                        <p><strong>Cause:</strong> Chrome is missing for UI tests.</p>
+                        <p><strong>Fix:</strong> Add Google Chrome installation steps to the startup script.</p>
                     </details>
 
                     <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Reference Scripts
@@ -702,6 +744,12 @@ fi
 if [ -z "$GITHUB_PAT" ]; then
     read -s -p "Enter GitHub PAT: " GITHUB_PAT
     echo ""
+fi
+
+# Explicit Auth Check
+if ! gcloud auth print-access-token &>/dev/null; then
+    echo "Error: gcloud not authenticated. Run 'gcloud auth login' first."
+    exit 1
 fi
 
 echo "Deploying to Project: $PROJECT_ID"
@@ -774,9 +822,16 @@ sysctl vm.swappiness=60
 echo 'vm.swappiness=60' >> /etc/sysctl.conf
 
 # --- 2. Install Dependencies ---
-echo "Installing Docker, Git, and GitHub CLI..."
+echo "Installing Docker, Git, Maven, and GitHub CLI..."
 apt-get update
-apt-get install -y docker.io git jq curl
+apt-get install -y docker.io git jq curl maven
+
+# Install Google Chrome (for UI Tests)
+echo "Installing Google Chrome..."
+wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+apt-get update
+apt-get install -y google-chrome-stable
 
 # Install gh CLI
 mkdir -p -m 755 /etc/apt/keyrings
@@ -973,6 +1028,15 @@ done</code></pre>
                         <p><strong>Error Log:</strong> <code>HTTP 403: Resource not accessible by integration</code></p>
                         <p><strong>Cause:</strong> Default GITHUB_TOKEN lacks permissions.</p>
                         <p><strong>Fix:</strong> Use a Personal Access Token (PAT) with <code>repo</code> scope.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>14. High Severity Vulnerabilities (npm audit)</strong></summary>
+                        <p><strong>Issue:</strong> Nested dependencies (e.g. <code>nth-check</code>) having
+                            vulnerabilities.
+                        </p>
+                        <p><strong>Fix:</strong> Use <code>overrides</code> in <code>package.json</code> to force secure
+                            versions.</p>
                     </details>
                 </div>
             </section>

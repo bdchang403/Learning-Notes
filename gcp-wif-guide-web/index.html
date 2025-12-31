@@ -63,8 +63,11 @@
             <a href="#cloudrun" class="nav-item">
                 <span class="step-num">13</span> Cloud Run
             </a>
+            <a href="#self-hosted" class="nav-item">
+                <span class="step-num">14</span> Runners
+            </a>
             <a href="#troubleshoot" class="nav-item">
-                <span class="step-num">14</span> Errors
+                <span class="step-num">15</span> Errors
             </a>
         </nav>
     </aside>
@@ -577,10 +580,98 @@ See 'docker build --help'.</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 14: TROUBLESHOOTING -->
+            <!-- SECTION 14: GCP SELF-HOSTED RUNNERS -->
+            <section id="self-hosted" class="step-section">
+                <div class="step-header">
+                    <h2>14. GCP Self-Hosted Runners</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Setting up and troubleshooting self-hosted GitHub Runners on GCP.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p>A guide to setting up and troubleshooting self-hosted GitHub Runners on Google Cloud Platform.
+                    </p>
+
+                    <h3 style="color: var(--highlight-color); margin-top: 1rem; margin-bottom: 1rem;">Setup & Deployment
+                    </h3>
+                    <p><strong>Steps:</strong></p>
+                    <ol>
+                        <li><strong>Preparation</strong>: Install <code>gcloud</code> SDK and authenticate
+                            (<code>gcloud auth login</code>).</li>
+                        <li><strong>Configuration</strong>: Create a <code>.env</code> file in <code>gcp-runner/</code>
+                            to store your GitHub Personal Access Token (PAT).
+                            <div class="code-block">
+                                <pre><code class="language-bash"># gcp-runner/.env
+GITHUB_PAT=ghp_your_token_here</code></pre>
+                                <button class="copy-btn">Copy</button>
+                            </div>
+                        </li>
+                        <li><strong>Deploy</strong>: Run the deployment script.
+                            <div class="code-block">
+                                <pre><code class="language-bash">cd gcp-runner
+./deploy.sh</code></pre>
+                                <button class="copy-btn">Copy</button>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Common Errors</h3>
+
+                    <details class="faq-item">
+                        <summary><strong>1. Invalid value for field 'resource.instanceTemplate'</strong></summary>
+                        <p><strong>Error:</strong>
+                            <code>Invalid value for field 'resource.instanceTemplate': ... does not exist.</code></p>
+                        <p><strong>Cause:</strong> Scope Mismatch. Template created as Regional but MIG looked for
+                            Global.</p>
+                        <p><strong>Fix:</strong> Remove <code>--region</code> flag when creating the instance template
+                            (use Global).</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>2. Push cannot contain secrets</strong></summary>
+                        <p><strong>Error:</strong> <code>remote: Push cannot contain secrets</code></p>
+                        <p><strong>Fix:</strong> Remove hardcoded PATs. Use environment variables. Amend commit to
+                            remove secret from history.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>3. ENOSPC: no space left on device</strong></summary>
+                        <p><strong>Cause:</strong> Default 30GB disk is too small for Docker images.</p>
+                        <p><strong>Fix:</strong> Upgrade to 100GB disk in <code>deploy.sh</code>.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>4. The resource ... already exists</strong></summary>
+                        <p><strong>Cause:</strong> Re-running script without cleanup logic.</p>
+                        <p><strong>Fix:</strong> Use latest <code>deploy.sh</code> with auto-cleanup (delete before
+                            create).</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>5. Could not fetch image resource</strong></summary>
+                        <p><strong>Cause:</strong> Hardcoded Ubuntu version deleted by Google.</p>
+                        <p><strong>Fix:</strong> Use <code>--image-family=ubuntu-2204-lts</code> instead of specific
+                            version.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>6. bash: ./deploy.sh: Permission denied</strong></summary>
+                        <p><strong>Fix:</strong> Run <code>chmod +x deploy.sh startup-script.sh</code>.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>7. Slow Performance / Queuing</strong></summary>
+                        <p><strong>Cause:</strong> Cold boot (Ephemeral mode) or small MIG size.</p>
+                        <p><strong>Fix:</strong> Use Idle Timeout (10 mins) and increase MIG size to 2.</p>
+                    </details>
+                </div>
+            </section>
+
+            <!-- SECTION 15: TROUBLESHOOTING -->
             <section id="troubleshoot" class="step-section">
                 <div class="step-header">
-                    <h2>14. Top 10 Common Errors</h2>
+                    <h2>15. Top 10 Common Errors</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">First deployments fail 90% of the time due to permission logic. Here is how

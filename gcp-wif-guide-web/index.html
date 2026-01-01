@@ -24,50 +24,60 @@
             <div class="logo">Full Stack CI/CD Guide</div>
         </div>
         <nav class="sidebar-nav">
+
+            <div class="nav-section-header">Phase 1: Local Readiness</div>
             <a href="#github" class="nav-item">
-                <span class="step-num">01</span> GitHub
-            </a>
-            <a href="#ui-tests" class="nav-item">
-                <span class="step-num">02</span> UI Tests
-            </a>
-            <a href="#api-keys" class="nav-item">
-                <span class="step-num">03</span> API Keys
-            </a>
-            <a href="#java-compat" class="nav-item">
-                <span class="step-num">04</span> Java Compat
+                <span class="step-num">01</span> GitHub Repo
             </a>
             <a href="#blank-page" class="nav-item">
-                <span class="step-num">05</span> Local Pitfalls
+                <span class="step-num">02</span> Local Pitfalls
             </a>
+            <a href="#ui-tests" class="nav-item">
+                <span class="step-num">03</span> UI Tests
+            </a>
+            <a href="#api-keys" class="nav-item">
+                <span class="step-num">04</span> API Keys
+            </a>
+
+            <div class="nav-section-header">Phase 2: Cloud Setup</div>
             <a href="#gcp-setup" class="nav-item">
-                <span class="step-num">06</span> GCP Setup
+                <span class="step-num">05</span> GCP Setup
             </a>
             <a href="#wif" class="nav-item">
-                <span class="step-num">07</span> WIF Setup
+                <span class="step-num">06</span> WIF Setup
             </a>
             <a href="#iam" class="nav-item">
-                <span class="step-num">08</span> IAM Roles
+                <span class="step-num">07</span> IAM Roles
             </a>
             <a href="#artifact" class="nav-item">
-                <span class="step-num">09</span> Artifacts
+                <span class="step-num">08</span> Artifact Registry
             </a>
-            <a href="#actions" class="nav-item">
-                <span class="step-num">10</span> Actions
-            </a>
+
+            <div class="nav-section-header">Phase 3: CI/CD Pipeline</div>
             <a href="#docker-secrets" class="nav-item">
-                <span class="step-num">11</span> Docker Secrets
+                <span class="step-num">09</span> Docker Secrets
+            </a>
+            <a href="#java-compat" class="nav-item">
+                <span class="step-num">10</span> Java Compat
             </a>
             <a href="#github-env" class="nav-item">
-                <span class="step-num">12</span> Github Env
+                <span class="step-num">11</span> Github Env
+            </a>
+            <a href="#actions" class="nav-item">
+                <span class="step-num">12</span> Actions Content
             </a>
             <a href="#cloudrun" class="nav-item">
                 <span class="step-num">13</span> Cloud Run
             </a>
+
+            <div class="nav-section-header">Phase 4: Advanced</div>
             <a href="#self-hosted" class="nav-item">
                 <span class="step-num">14</span> Runners
             </a>
+
+            <div class="nav-section-header">Appendix</div>
             <a href="#troubleshoot" class="nav-item">
-                <span class="step-num">15</span> Errors
+                <span class="step-num">15</span> Common Errors
             </a>
         </nav>
     </aside>
@@ -104,6 +114,8 @@
 
         <main class="container">
 
+            <!-- PHASE 1: LOCAL READINESS -->
+
             <!-- SECTION 1: GITHUB -->
             <section id="github" class="step-section">
                 <div class="step-header">
@@ -129,10 +141,114 @@
                 </div>
             </section>
 
-            <!-- SECTION 2: UI TESTS (Was 12) -->
+            <!-- SECTION 2: BLANK PAGE (Was 13/5) -->
+            <section id="blank-page" class="step-section">
+                <div class="step-header">
+                    <h2>2. Local Development Pitfalls</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Common issues when running React/Vite locally.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <details class="faq-item">
+                        <summary><strong>1. The "Default Port" Trap</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> You launch your app, but `localhost:5173` refuses to connect.
+                                You notice the terminal says it's running on `localhost:5174`.</p>
+                            <p><strong>Why it happens:</strong> Vite (and many other tools) defaults to port 5173. If
+                                that port is in use (e.g., by a "zombie" process from a previous run), it silently
+                                increments to the next available port.</p>
+                            <p><strong>The Fix:</strong> Enforce strict port usage in <code>vite.config.js</code>. This
+                                forces the server to crash rather than switch ports, alerting you to the issue
+                                immediately.</p>
+                            <p>Code: <code>server: { port: 5173, strictPort: true }</code></p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>2. The 20-Second Delay (IPv6 vs IPv4)</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> The app loads, but it takes exactly 20 seconds of a white
+                                screen before anything appears.</p>
+                            <p><strong>Why it happens:</strong> Node.js often prefers IPv6 resolution (`::1`) for
+                                `localhost`. However, dev servers usually listen on IPv4 (`127.0.0.1`). The browser
+                                tries IPv6, waits for the timeout (20s), and then falls back to IPv4.</p>
+                            <p><strong>The Fix:</strong> Explicitly bind the server to the IPv4 loopback address in
+                                <code>vite.config.js</code>.</p>
+                            <p>Code: <code>server: { host: '127.0.0.1' }</code></p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>3. The "Silent Crash" (Static Import Errors)</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> You see a blank white screen. There are NO errors in the
+                                browser console. The Refresh button does nothing.</p>
+                            <p><strong>Why it happens:</strong> If you have a syntax error or a typo in a top-level
+                                `import` statement, the JavaScript engine fails to parse the file before React even
+                                starts. Because it happens at the parsing level, generic Error Boundaries cannot catch
+                                it.</p>
+                            <p><strong>The Fix:</strong> Run <code>npm run build</code> in your terminal. The build
+                                process (using `tsc` or `vite build`) scans all files for static validity and will print
+                                the exact file and line number of the bad import.</p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>4. The "React Crash" (Runtime Errors)</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> The app loads briefly, then turns white. The console shows a
+                                red React error stack trace.</p>
+                            <p><strong>Why it happens:</strong> An unhandled JavaScript exception occurred during
+                                rendering (e.g., `cannot read property of undefined`). In React, if a component throws
+                                an error, the entire component tree unmounts by default to protect data integrity.</p>
+                            <p><strong>The Fix:</strong> Wrap your main specific component (or the entire App) in a
+                                <strong>Global Error Boundary</strong>. This catches the crash and displays a "Something
+                                went wrong" UI instead of a blank screen.</p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>5. The "Nuclear Option" (Isolating the Problem)</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> You are stuck. You don't know if it's the network, the
+                                browser, React, or your code.</p>
+                            <p><strong>The Technique:</strong> Delete everything in `main.jsx` and replace it with a
+                                single line: <code>document.body.innerHTML = "<h1>IT WORKS</h1>";</code>.</p>
+                            <p><strong>The Logic:</strong> If "IT WORKS" appears, your server, browser, and network are
+                                fine; the issue is definitely in your React code. If it doesn't appear, your environment
+                                is broken (e.g., port blocking, wrong URL).</p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>6. High Severity Vulnerabilities (npm audit)</strong></summary>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> Your CI pipeline fails because `npm audit` reports "High
+                                Severity" vulnerabilities, but they are in libraries you don't use directly (nested
+                                dependencies).</p>
+                            <p><strong>Why it happens:</strong> A library like `react-scripts` might rely on an old
+                                version of `postcss`. You can't upgrade `postcss` directly because you didn't install
+                                it.</p>
+                            <p><strong>The Fix:</strong> Use the <code>overrides</code> field in
+                                <code>package.json</code>. This forces `npm` to replace the vulnerable version with a
+                                secure one across the entire dependency tree.</p>
+                            <div class="code-block">
+                                <pre><code class="language-json">"overrides": {
+  "nth-check": "^2.0.1",
+  "postcss": "^8.4.31"
+}</code></pre>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </section>
+
+            <!-- SECTION 3: UI TESTS (Was 12/2) -->
             <section id="ui-tests" class="step-section">
                 <div class="step-header">
-                    <h2>2. Headless Chrome Stability</h2>
+                    <h2>3. Headless Chrome Stability</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Making UI tests robust in headless CI.</div>
@@ -172,10 +288,10 @@
                 </div>
             </section>
 
-            <!-- SECTION 3: API KEYS (Was 11) -->
+            <!-- SECTION 4: API KEYS (Was 11/3) -->
             <section id="api-keys" class="step-section">
                 <div class="step-header">
-                    <h2>3. Testing with Restricted API Keys</h2>
+                    <h2>4. Testing with Restricted API Keys</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Handling referrer restrictions in automated tests.</div>
@@ -209,92 +325,16 @@
                 </div>
             </section>
 
-            <!-- SECTION 4: JAVA VERSION (Was 10) -->
-            <section id="java-compat" class="step-section">
-                <div class="step-header">
-                    <h2>4. Java Version Compatibility</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Ensuring tools have the correct Java runtime.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
-                        default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
-                    <p><strong>Symptoms:</strong> The build fails immediately with a class version error:</p>
-                    <pre><code>java.lang.UnsupportedClassVersionError: 
-com/intuit/karate/Main has been compiled by a more recent version 
-of the Java Runtime (class file version 61.0)...</code></pre>
-                    <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
-                        (<code>actions/setup-java</code>) and the Maven configuration
-                        (<code>maven-compiler-plugin</code>).</p>
-                    <div class="code-block">
-                        <pre><code class="language-yaml">- uses: actions/setup-java@v4
-  with:
-    java-version: '17'</code></pre>
-                        <button class="copy-btn">Copy</button>
-                    </div>
-                </div>
-            </section>
+            <!-- PHASE 2: CLOUD SETUP -->
 
-            <!-- SECTION 5: BLANK PAGE (Was 13) -->
-            <section id="blank-page" class="step-section">
-                <div class="step-header">
-                    <h2>5. Local Development Pitfalls</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Common issues when running React/Vite locally.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <details class="faq-item">
-                        <summary><strong>1. The "Default Port" Trap</strong></summary>
-                        <p><strong>Symptom:</strong> App opens on 5174 instead of 5173. Bookmarks break.</p>
-                        <p><strong>Fix:</strong> Enforce strict port in <code>vite.config.js</code>:
-                            <br><code>server: { port: 5173, strictPort: true }</code>
-                        </p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>2. The 20-Second Delay (IPv6)</strong></summary>
-                        <p><strong>Symptom:</strong> App hangs for 20s before loading.</p>
-                        <p><strong>Cause:</strong> Node trying to resolve localhost via IPv6.</p>
-                        <p><strong>Fix:</strong> Force IPv4 in <code>vite.config.js</code>:
-                            <br><code>server: { host: '127.0.0.1' }</code>
-                        </p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>3. The "Silent Crash" (Import Errors)</strong></summary>
-                        <p><strong>Symptom:</strong> Instant white screen. No Error Boundary.</p>
-                        <p><strong>Cause:</strong> Static import failed (e.g. typo) before React could start.</p>
-                        <p><strong>Fix:</strong> Run <code>npm run build</code> to catch these errors.</p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>4. The "React Crash" (Runtime Errors)</strong></summary>
-                        <p><strong>Symptom:</strong> White screen with console errors.</p>
-                        <p><strong>Fix:</strong> Wrap app in a Global Error Boundary.</p>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary><strong>5. The "Nuclear Option"</strong></summary>
-                        <p>Unsure if it's code or server? Replace <code>main.jsx</code> content with:</p>
-                        <p><code>document.body.innerHTML = "<h1>IT WORKS</h1>";</code></p>
-                        <p>If it works -> Your React code is broken. If it fails -> Server/Env is broken.</p>
-                    </details>
-                </div>
-            </section>
-
-            <!-- SECTION 6: GCP SETUP (Was 2) -->
+            <!-- SECTION 5: GCP SETUP (Was 2/6) -->
             <section id="gcp-setup" class="step-section">
                 <div class="step-header">
-                    <h2>6. Google Cloud Setup</h2>
+                    <h2>5. Google Cloud Setup</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? We need to tell Google Cloud to activate the specific services (APIs)
-                            we
-                            plan to use, like IAM and Artifact Registry.</div>
+                            we plan to use, like IAM and Artifact Registry.</div>
                     </div>
                 </div>
                 <div class="step-content">
@@ -319,10 +359,10 @@ export USER_NAME="your-github-username"</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 7: WIF (Was 3) -->
+            <!-- SECTION 6: WIF (Was 3/7) -->
             <section id="wif" class="step-section">
                 <div class="step-header">
-                    <h2>7. Workload Identity Federation</h2>
+                    <h2>6. Workload Identity Federation</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Required because: This establishes a "trust relationship" so Google Cloud
@@ -357,15 +397,14 @@ export USER_NAME="your-github-username"</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 8: IAM (Was 4) -->
+            <!-- SECTION 7: IAM (Was 4/8) -->
             <section id="iam" class="step-section">
                 <div class="step-header">
-                    <h2>8. Service Account & IAM</h2>
+                    <h2>7. Service Account & IAM</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? The "Service Account" is the actual GCP user that performs the work
-                            (like
-                            pushing a docker image). We give GitHub permission to "act as" this user.</div>
+                            (like pushing a docker image). We give GitHub permission to "act as" this user.</div>
                     </div>
                 </div>
                 <div class="step-content">
@@ -400,10 +439,10 @@ gcloud iam service-accounts create "${SERVICE_ACCOUNT}" \
                 </div>
             </section>
 
-            <!-- SECTION 9: ARTIFACT REGISTRY (Was 5) -->
+            <!-- SECTION 8: ARTIFACT REGISTRY (Was 5/9) -->
             <section id="artifact" class="step-section">
                 <div class="step-header">
-                    <h2>9. Artifact Registry</h2>
+                    <h2>8. Artifact Registry</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? We need a private, secure place to store our Docker container images,
@@ -428,15 +467,105 @@ gcloud artifacts repositories create "${AR_REPO}" \
                 </div>
             </section>
 
-            <!-- SECTION 10: ACTIONS (Was 6) -->
+            <!-- PHASE 3: CI/CD PIPELINE -->
+
+            <!-- SECTION 9: DOCKER SECRETS (Was 8/11) -->
+            <section id="docker-secrets" class="step-section">
+                <div class="step-header">
+                    <h2>9. Docker Build Arguments & Secrets</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">How to safely pass secrets during docker build.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> Passing secrets as build arguments to <code>docker build</code> via shell
+                        commands is prone to errors due to quoting and shell expansion.</p>
+                    <p><strong>Symptoms:</strong> You might see obscure syntax errors in your build log like:</p>
+                    <pre><code class="language-bash">docker: "build" requires 1 argument.
+See 'docker build --help'.</code></pre>
+                    <p>Or, if the build succeeds, your application crashes at runtime because the secret variable is
+                        empty.</p>
+                    <p><strong>Solution:</strong> Use the official <code>docker/build-push-action</code>. It handles
+                        secret injection safely and correctly parses arguments.</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">- name: Build App Image
+  uses: docker/build-push-action@v5
+  with:
+    context: .
+    load: true # Keeps image available for subsequent steps
+    build-args: |
+      REACT_APP_GOOGLE_API_KEY=${{ secrets.REACT_APP_GOOGLE_API_KEY }}</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 10: JAVA VERSION (Was 10/4) -->
+            <section id="java-compat" class="step-section">
+                <div class="step-header">
+                    <h2>10. Java Version Compatibility</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Ensuring tools have the correct Java runtime.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> Tools may have specific Java requirements that differ from the project
+                        default. Karate 1.5.0+ requires Java 17, while the project might be on Java 11.</p>
+                    <p><strong>Symptoms:</strong> The build fails immediately with a class version error:</p>
+                    <pre><code>java.lang.UnsupportedClassVersionError: 
+com/intuit/karate/Main has been compiled by a more recent version 
+of the Java Runtime (class file version 61.0)...</code></pre>
+                    <p><strong>Solution:</strong> Explicitly set the Java version in both the CI environment
+                        (<code>actions/setup-java</code>) and the Maven configuration
+                        (<code>maven-compiler-plugin</code>).</p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">- uses: actions/setup-java@v4
+  with:
+    java-version: '17'</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 11: GITHUB ENVIRONMENTS (Was 9/12) -->
+            <section id="github-env" class="step-section">
+                <div class="step-header">
+                    <h2>11. GitHub Environments</h2>
+                    <div class="tooltip-container">
+                        <span class="info-icon">?</span>
+                        <div class="tooltip">Accessing environment-specific secrets.</div>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <p><strong>Issue:</strong> Secrets defined in a specific GitHub Environment (e.g., <code>CI</code>)
+                        are not accessible to the workflow job unless the job explicitly references that environment.
+                    </p>
+                    <p><strong>Symptoms:</strong> Your workflow runs, but steps that need the secret fail. If you print
+                        the secret (be careful!), it is empty. Your app logs might say:</p>
+                    <pre><code>Error: GOOGLE_API_KEY is not set</code></pre>
+                    <p><strong>Solution:</strong> Add the <code>environment</code> property to the job configuration.
+                    </p>
+                    <div class="code-block">
+                        <pre><code class="language-yaml">jobs:
+  test:
+    environment: CI
+    steps:
+      ...</code></pre>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 12: ACTIONS (Was 6/10) -->
             <section id="actions" class="step-section">
                 <div class="step-header">
-                    <h2>10. GitHub Actions Workflow</h2>
+                    <h2>12. GitHub Actions Workflow</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? This YAML file tells GitHub *exactly* what steps to run automatically
-                            when
-                            you push code.</div>
+                            when you push code.</div>
                     </div>
                 </div>
                 <div class="step-content">
@@ -489,76 +618,14 @@ jobs:
                 </div>
             </section>
 
-            <!-- SECTION 11: DOCKER SECRETS (Was 8) -->
-            <section id="docker-secrets" class="step-section">
-                <div class="step-header">
-                    <h2>11. Docker Build Arguments & Secrets</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">How to safely pass secrets during docker build.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p><strong>Issue:</strong> Passing secrets as build arguments to <code>docker build</code> via shell
-                        commands is prone to errors due to quoting and shell expansion.</p>
-                    <p><strong>Symptoms:</strong> You might see obscure syntax errors in your build log like:</p>
-                    <pre><code class="language-bash">docker: "build" requires 1 argument.
-See 'docker build --help'.</code></pre>
-                    <p>Or, if the build succeeds, your application crashes at runtime because the secret variable is
-                        empty.</p>
-                    <p><strong>Solution:</strong> Use the official <code>docker/build-push-action</code>. It handles
-                        secret injection safely and correctly parses arguments.</p>
-                    <div class="code-block">
-                        <pre><code class="language-yaml">- name: Build App Image
-  uses: docker/build-push-action@v5
-  with:
-    context: .
-    load: true # Keeps image available for subsequent steps
-    build-args: |
-      REACT_APP_GOOGLE_API_KEY=${{ secrets.REACT_APP_GOOGLE_API_KEY }}</code></pre>
-                        <button class="copy-btn">Copy</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION 12: GITHUB ENVIRONMENTS (Was 9) -->
-            <section id="github-env" class="step-section">
-                <div class="step-header">
-                    <h2>12. GitHub Environments</h2>
-                    <div class="tooltip-container">
-                        <span class="info-icon">?</span>
-                        <div class="tooltip">Accessing environment-specific secrets.</div>
-                    </div>
-                </div>
-                <div class="step-content">
-                    <p><strong>Issue:</strong> Secrets defined in a specific GitHub Environment (e.g., <code>CI</code>)
-                        are not accessible to the workflow job unless the job explicitly references that environment.
-                    </p>
-                    <p><strong>Symptoms:</strong> Your workflow runs, but steps that need the secret fail. If you print
-                        the secret (be careful!), it is empty. Your app logs might say:</p>
-                    <pre><code>Error: GOOGLE_API_KEY is not set</code></pre>
-                    <p><strong>Solution:</strong> Add the <code>environment</code> property to the job configuration.
-                    </p>
-                    <div class="code-block">
-                        <pre><code class="language-yaml">jobs:
-  test:
-    environment: CI
-    steps:
-      ...</code></pre>
-                        <button class="copy-btn">Copy</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SECTION 13: CLOUD RUN (Was 7) -->
+            <!-- SECTION 13: CLOUD RUN (Was 7/13) -->
             <section id="cloudrun" class="step-section">
                 <div class="step-header">
                     <h2>13. Deploy to Cloud Run</h2>
                     <div class="tooltip-container">
                         <span class="info-icon">?</span>
                         <div class="tooltip">Why? Cloud Run is "serverless". It takes your Docker container and runs it
-                            on a
-                            URL instantly without you managing servers.</div>
+                            on a URL instantly without you managing servers.</div>
                     </div>
                 </div>
                 <div class="step-content">
@@ -575,10 +642,11 @@ See 'docker build --help'.</code></pre>
                         <button class="copy-btn">Copy</button>
                     </div>
                     <p><strong>To Kick-start:</strong> Commit and push these changes to your <code>main</code> branch.
-                        Go to
-                        the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
+                        Go to the <strong>Actions</strong> tab in GitHub to watch it fly!</p>
                 </div>
             </section>
+
+            <!-- PHASE 4: ADVANCED -->
 
             <!-- SECTION 14: GCP SELF-HOSTED RUNNERS -->
             <section id="self-hosted" class="step-section">
@@ -616,9 +684,6 @@ GITHUB_PAT=ghp_your_token_here</code></pre>
                                 <button class="copy-btn">Copy</button>
                             </div>
                         </li>
-                    </ol>
-
-                    </li>
                     </ol>
 
                     <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Updating Runners
@@ -695,89 +760,171 @@ gcloud compute images create gh-runner-golden-v1 --source-disk=builder-vm ...</c
                             <details class="faq-item">
                                 <summary><strong>1. Invalid value for field 'resource.instanceTemplate'</strong>
                                 </summary>
-                                <p><strong>Error:</strong>
-                                    <code>Invalid value for field 'resource.instanceTemplate': ... does not exist.</code>
-                                </p>
-                                <p><strong>Cause:</strong> Scope Mismatch. Template created as Regional but MIG looked
-                                    for
-                                    Global.</p>
-                                <p><strong>Fix:</strong> Remove <code>--region</code> flag when creating the instance
-                                    template
-                                    (use Global).</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You run <code>deploy.sh</code> and it fails when
+                                        creating the Managed Instance Group (MIG).</p>
+                                    <p><strong>Error:</strong>
+                                        <code>Invalid value for field 'resource.instanceTemplate': '...' does not exist.</code>
+                                    </p>
+                                    <p><strong>Cause:</strong> You created a "Regional" instance template, but the MIG
+                                        is trying to find it globally (or vice versa). By default, `gcloud` might
+                                        default to regional templates which are harder to reference across zones.</p>
+                                    <p><strong>Fix:</strong> create the Instance Template as <strong>Global</strong>.
+                                        Remove the <code>--region</code> flag from the `gcloud compute
+                                        instance-templates create` command.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>2. Push cannot contain secrets</strong></summary>
-                                <p><strong>Error:</strong> <code>remote: Push cannot contain secrets</code></p>
-                                <p><strong>Fix:</strong> Remove hardcoded PATs. Use environment variables. Amend commit
-                                    to
-                                    remove secret from history.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You try to `git push` your code, but the operation is
+                                        rejected.</p>
+                                    <p><strong>Cause:</strong> You accidentally committed your `gcp-key.json` or
+                                        hardcoded a PAT in a script. GitHub's secret scanning (or pre-commit hooks)
+                                        blocked it to protect you.</p>
+                                    <p><strong>Fix:</strong> Remove the file/secret. You might need to use `git reset
+                                        HEAD~1` to undo the commit, then modify the file to use environment variables
+                                        (`$GITHUB_PAT`), and commit again.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>3. ENOSPC: no space left on device</strong></summary>
-                                <p><strong>Cause:</strong> Default 30GB disk is too small for Docker images.</p>
-                                <p><strong>Fix:</strong> Upgrade to 100GB disk in <code>deploy.sh</code>.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> The build fails while pulling Docker images.</p>
+                                    <p><strong>Cause:</strong> The default disk size for some machine types is small
+                                        (e.g., 10-30GB). Docker images and layers accumulate quickly.</p>
+                                    <p><strong>Fix:</strong> In <code>deploy.sh</code>, ensure the boot disk size is set
+                                        to at least <strong>100GB</strong>: ` --boot-disk-size=100GB`.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>4. The resource ... already exists</strong></summary>
-                                <p><strong>Cause:</strong> Re-running script without cleanup logic.</p>
-                                <p><strong>Fix:</strong> Use latest <code>deploy.sh</code> with auto-cleanup (delete
-                                    before
-                                    create).</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You run <code>deploy.sh</code> a second time time to
+                                        update something, and it crashes.</p>
+                                    <p><strong>Cause:</strong> The script is trying to create resources (MIG, Template)
+                                        that already exist. It doesn't know how to "update".</p>
+                                    <p><strong>Fix:</strong> Add cleanup logic to the top of your script. Check if the
+                                        resource exists, and `delete` it before `create`. (See Reference Scripts).</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>5. Could not fetch image resource</strong></summary>
-                                <p><strong>Cause:</strong> Hardcoded Ubuntu version deleted by Google.</p>
-                                <p><strong>Fix:</strong> Use <code>--image-family=ubuntu-2204-lts</code> instead of
-                                    specific
-                                    version.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> The deployment fails saying the Image was not found.
+                                    </p>
+                                    <p><strong>Cause:</strong> You likely referenced a specific image version (e.g.,
+                                        `ubuntu-2204-v20240101`) that Google has since deprecated and deleted.</p>
+                                    <p><strong>Fix:</strong> Always use the <strong>Image Family</strong> flag:
+                                        `--image-family=ubuntu-2204-lts`. This points to the latest available version
+                                        automatically.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>6. bash: ./deploy.sh: Permission denied</strong></summary>
-                                <p><strong>Fix:</strong> Run <code>chmod +x deploy.sh startup-script.sh</code>.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You try to run the script and the terminal says
+                                        "Permission denied".</p>
+                                    <p><strong>Cause:</strong> The file does not have the "Execute" permission bit set
+                                        on the filesystem.</p>
+                                    <p><strong>Fix:</strong> Run <code>chmod +x deploy.sh startup-script.sh</code> to
+                                        make them executable.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>7. Slow Performance / Queuing</strong></summary>
-                                <p><strong>Cause:</strong> Cold boot (Ephemeral mode) or small MIG size.</p>
-                                <p><strong>Fix:</strong> Use Idle Timeout (10 mins) and increase MIG size to 2.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You start a workflow. It stays "Queued" for 4 minutes
+                                        before starting. The run is slow.</p>
+                                    <p><strong>Cause:</strong> If you use Ephemeral runners without an idle pool, every
+                                        job has to boot a whole new VM, install Docker, and register. This takes time.
+                                    </p>
+                                    <p><strong>Fix:</strong> Use the "Idle Timeout" strategy. Keep the runner alive for
+                                        10 minutes after a job so subsequent jobs are instant. Also, increase MIG size.
+                                    </p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>8. gh: command not found</strong></summary>
-                                <p><strong>Error:</strong>
-                                    <code>/actions-runner/.../script.sh: line 1: gh: command not found</code>
-                                </p>
-                                <p><strong>Cause:</strong> GitHub CLI is not installed by default on self-hosted
-                                    runners.</p>
-                                <p><strong>Fix:</strong> Update <code>startup-script.sh</code> to install `gh`.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> Your workflow uses `gh release create`, but it fails
+                                        on the self-hosted runner.</p>
+                                    <p><strong>Cause:</strong> The `gh` CLI tool comes pre-installed on GitHub-hosted
+                                        runners, but NOT on standard Ubuntu images. Your runner is "naked".</p>
+                                    <p><strong>Fix:</strong> Add the installation steps for `gh` CLI to your
+                                        <code>startup-script.sh</code>.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>9. Deployment Script Hanging</strong></summary>
-                                <p><strong>Symptoms:</strong> Script hangs at "Cleaning up...".</p>
-                                <p><strong>Cause:</strong> <code>gcloud</code> is waiting for auth input, but output is
-                                    suppressed.
-                                </p>
-                                <p><strong>Fix:</strong> Remove <code>&>/dev/null</code> or add an explicit auth check.
-                                </p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You run <code>deploy.sh</code>. It prints "Cleaning
+                                        up..." and then sits there forever. Ctrl+C is required.</p>
+                                    <p><strong>Cause:</strong> <code>gcloud</code> is trying to ask for a confirmation
+                                        or password, but you piped the output to `&>/dev/null` (or it's hidden), so you
+                                        can't see the prompt.</p>
+                                    <p><strong>Fix:</strong> Remove `&>/dev/null` from your commands while debugging.
+                                        Add explicit authentication checks at the top of the script.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>10. CI Failure: "mvn: command not found"</strong></summary>
-                                <p><strong>Cause:</strong> Maven is not installed on the base Ubuntu image.</p>
-                                <p><strong>Fix:</strong> Add <code>apt-get install -y maven</code> to the startup
-                                    script.</p>
+                                <div class="faq-body">
+                                    <p><strong>Cause:</strong> Similar to `gh` CLI, Maven is not installed by default on
+                                        Ubuntu.</p>
+                                    <p><strong>Fix:</strong> Add <code>apt-get install -y maven</code> to your startup
+                                        script.</p>
+                                </div>
                             </details>
 
                             <details class="faq-item">
                                 <summary><strong>11. CI Failure: "driver config / start failed"</strong></summary>
-                                <p><strong>Cause:</strong> Chrome is missing for UI tests.</p>
-                                <p><strong>Fix:</strong> Add Google Chrome installation steps to the startup script.</p>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> Your UI tests fail with "Chrome not reachable" or
+                                        "Driver failed".</p>
+                                    <p><strong>Cause:</strong> You are trying to run Headless Chrome, but Chrome isn't
+                                        even installed on the runner VM.</p>
+                                    <p><strong>Fix:</strong> Add the Google Chrome stable installation block to your
+                                        startup script.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>12. Golden Image Build Hangs</strong></summary>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> You try to build a Golden Image. The script runs for
+                                        hours and never finishes.</p>
+                                    <p><strong>Cause:</strong> `apt-get install` commands often stop to ask "Do you want
+                                        to restart services?". Since there is no user to say "Yes", it waits forever.
+                                    </p>
+                                    <p><strong>Fix:</strong> Set the environment variable
+                                        `DEBIAN_FRONTEND=noninteractive` before running apt commands in your setup
+                                        script.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>13. Runners Stuck / Queueing Indefinitely</strong></summary>
+                                <div class="faq-body">
+                                    <p><strong>Scenario:</strong> GitHub shows "Queued" for 20 minutes. You check GCP,
+                                        and the VMs are running.</p>
+                                    <p><strong>Cause A (Labels):</strong> Your workflow demands `runs-on: [self-hosted,
+                                        linux]`, but your runner registered with `labels: gcp-runner`. They must match.
+                                    </p>
+                                    <p><strong>Cause B (Broken Startup):</strong> The startup script crashed before
+                                        registering. Check the VM logs (Serial Port 1 observations) in GCP Console.</p>
+                                    <p><strong>Fix:</strong> Ensure `labels` in `config.sh` match the workflow. Check
+                                        logs for script errors.</p>
+                                </div>
                             </details>
 
                             <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Reference
@@ -975,7 +1122,7 @@ done</code></pre>
                 </div>
             </section>
 
-            <!-- SECTION 15: TROUBLESHOOTING -->
+            <!-- APPENDIX: TROUBLESHOOTING -->
             <section id="troubleshoot" class="step-section">
                 <div class="step-header">
                     <h2>15. Top 10 Common Errors</h2>
@@ -992,139 +1139,196 @@ done</code></pre>
 
                     <details class="faq-item">
                         <summary><strong>1. Container failed to start (App Code)</strong></summary>
-                        <p><strong>Error Log:</strong>
-                            <code>Cloud Run error: Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.</code>
-                        </p>
-                        <p><strong>Cause:</strong> Your app isn't listening on the environment variable
-                            <code>$PORT</code> (default 8080).
-                            <br><strong>Fix:</strong> Change your code to listen on <code>process.env.PORT</code>
-                            instead of a hardcoded 3000.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong>
+                                <code>Cloud Run error: Container failed to start. Failed to start and then listen on the port defined by the PORT environment variable.</code>
+                            </p>
+                            <p><strong>Cause:</strong> Cloud Run injects a random port (e.g., 8080) into the `$PORT` env
+                                var. Your code is likely hardcoded to port 3000, so it never "picks up the phone".</p>
+                            <p><strong>Fix:</strong> Update <code>server.js</code> or <code>vite.config.js</code> to use
+                                <code>process.env.PORT || 3000</code>.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>2. Reserved Env Var 'PORT' (Deployment Config)</strong></summary>
-                        <p><strong>Error Log:</strong>
-                            <code>The following reserved env names were provided: PORT. These values are automatically set by the system.</code>
-                        </p>
-                        <p><strong>Cause:</strong> Attempting to set <code>PORT</code> in your GitHub Actions workflow
-                            <code>env</code>.
-                            <br><strong>Fix:</strong> Remove <code>PORT</code> from your workflow's <code>env</code>
-                            section. Cloud Run handles this automatically.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong>
+                                <code>The following reserved env names were provided: PORT. These values are automatically set by the system.</code>
+                            </p>
+                            <p><strong>Cause:</strong> You are trying to be helpful by manually creating a `PORT`
+                                environment variable in your GitHub Actions workflow or Cloud Run config. Google forbids
+                                this because *they* control the port.</p>
+                            <p><strong>Fix:</strong> Delete the <code>PORT</code> variable from your <code>env:</code>
+                                block in the YAML file.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>3. Artifact Registry Repo Not Found</strong></summary>
-                        <p><strong>Error Log:</strong> <code>name unknown: Repository "..." not found</code></p>
-                        <p><strong>Fix:</strong> Create the repository manually:
-                            <br><code>gcloud artifacts repositories create ...</code>
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong> <code>name unknown: Repository "..." not found</code></p>
+                            <p><strong>Cause:</strong> The Docker Push step is trying to upload to a repository that
+                                doesn't exist yet.</p>
+                            <p><strong>Fix:</strong> Run the one-time manual setup command:
+                                <code>gcloud artifacts repositories create ...</code> (See Phase 2).</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>4. Permission 'run.admin' missing</strong></summary>
-                        <p><strong>Error Log:</strong>
-                            <code>PERMISSION_DENIED: The caller does not have permission</code> during the deploy step.
-                        </p>
-                        <p><strong>Fix:</strong> Give the Service Account the role:
-                            <br><code>gcloud projects add-iam-policy-binding ... --role="roles/run.admin"</code>
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong>
+                                <code>PERMISSION_DENIED: The caller does not have permission</code> during the deploy
+                                step.</p>
+                            <p><strong>Cause:</strong> The Service Account you created (which GitHub uses) has
+                                permission to *push* to the registry, but NOT to *deploy* to Cloud Run. They are
+                                separate roles.</p>
+                            <p><strong>Fix:</strong> Grant the <code>roles/run.admin</code> role to the Service Account.
+                            </p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>5. Permission 'iam.serviceAccountUser' missing</strong></summary>
-                        <p><strong>Fix:</strong> The Service Account needs permission to "act as" itself.
-                            <br><code>gcloud projects add-iam-policy-binding ... --role="roles/iam.serviceAccountUser"</code>
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> The deploy step fails with a cryptic permission error, even
+                                though you have <code>run.admin</code>.</p>
+                            <p><strong>Cause:</strong> To deploy a service, the deployer (GitHub) must be allowed to
+                                "Act As" the service identity that will run the app. This is a security check.</p>
+                            <p><strong>Fix:</strong> Grant <code>roles/iam.serviceAccountUser</code> to the Service
+                                Account *on itself* (or project-wide).</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>6. Subject Issuer Mismatch</strong></summary>
-                        <p><strong>Cause:</strong> Typo in the Workload Identity Federation mapping.
-                            <br><strong>Fix:</strong> Check if your <code>repo:user/repo</code> casing matches exactly.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong> <code>Subject [...] does not match principalSet [...]</code>
+                            </p>
+                            <p><strong>Cause:</strong> The Workload Identity Federation trust rule expects a specific
+                                repo name (e.g., `Joy/App`), but the token is coming from (`Joy/app`). It is
+                                case-sensitive!</p>
+                            <p><strong>Fix:</strong> Re-run the `add-iam-policy-binding` command ensuring the casing
+                                matches your GitHub repo exactly.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>7. Permission 'artifactregistry.writer' missing</strong></summary>
-                        <p><strong>Fix:</strong> Ensure SA has <strong>Artifact Registry Writer</strong> role.</p>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> <code>docker push</code> fails with "Denied".</p>
+                            <p><strong>Cause:</strong> Service Account lacks write access to the registry.</p>
+                            <p><strong>Fix:</strong> Grant <code>roles/artifactregistry.writer</code>.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>8. Org Policy Restricted</strong></summary>
-                        <p><strong>Cause:</strong> Your company blocks public (unauthenticated) sites.
-                            <br><strong>Fix:</strong> Remove <code>--allow-unauthenticated</code> or ask Admin.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> You deploy successfully, but the URL is unreachable or 403.
+                                You see "Organization Policy restricted" in logs.</p>
+                            <p><strong>Cause:</strong> Your corporate Google Cloud setup forbids "AllUsers" (public
+                                internet) from accessing Cloud Run services.</p>
+                            <p><strong>Fix:</strong> Remove <code>--allow-unauthenticated</code> from the deploy flags,
+                                or ask your Org Admin to create an exception.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>9. Region Mismatch</strong></summary>
-                        <p><strong>Error Log:</strong> <code>Image '...' not found</code> or
-                            <code>Manifest not found</code>.
-                        </p>
-                        <p><strong>Cause:</strong> Artifact in <code>us-east1</code> but deploying to
-                            <code>us-central1</code>.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong> <code>Image not found</code> or
+                                <code>Manifest not found</code>.</p>
+                            <p><strong>Cause:</strong> You pushed your image to a registry in `us-east1` (in Step 1),
+                                but you are trying to deploy to a Cloud Run service in `us-central1` (Step 2). They
+                                can't see each other easily.</p>
+                            <p><strong>Fix:</strong> Ensure the `REGION` variable is consistent across all steps.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>10. Cloud Run Admin API Disabled</strong></summary>
-                        <p><strong>Error Log:</strong>
-                            <code>Cloud Run Admin API has not been used in project ... or it is disabled.</code>
-                        </p>
-                        <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong>
+                                <code>Cloud Run Admin API has not been used in project ... or it is disabled.</code></p>
+                            <p><strong>Cause:</strong> You created a project but didn't turn on the "Cloud Run" feature
+                                explicitly.</p>
+                            <p><strong>Fix:</strong> Run <code>gcloud services enable run.googleapis.com</code>.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>11. GitHub Secrets Typos</strong></summary>
-                        <p><strong>Tip:</strong> Check for accidental spaces when pasting secrets.</p>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> Authentication fails. "Invalid Credentials".</p>
+                            <p><strong>Tip:</strong> When you copy-paste from a terminal or webpage into GitHub Secrets
+                                UI, you often capture a trailing newline or space. GitHub doesn't trim this
+                                automatically for all secret types.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>12. Docker Context Error</strong></summary>
-                        <p><strong>Cause:</strong> <code>COPY . .</code> failing? Check your <code>.dockerignore</code>
-                            file.</p>
+                        <div class="faq-body">
+                            <p><strong>Scenario:</strong> <code>COPY . .</code> fails to copy files, or the build is
+                                missing files.</p>
+                            <p><strong>Cause:</strong> You have a <code>.dockerignore</code> file that is too
+                                aggressive, filtering out the source code you want to build.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>13. Resource not accessible (403)</strong></summary>
-                        <p><strong>Error Log:</strong> <code>HTTP 403: Resource not accessible by integration</code></p>
-                        <p><strong>Cause:</strong> Default GITHUB_TOKEN lacks permissions.</p>
-                        <p><strong>Fix:</strong> Use a Personal Access Token (PAT) with <code>repo</code> scope.</p>
+                        <div class="faq-body">
+                            <p><strong>Error Log:</strong> <code>HTTP 403: Resource not accessible by integration</code>
+                            </p>
+                            <p><strong>Cause:</strong> The default ephemeral `GITHUB_TOKEN` used by Actions often has
+                                "Read Only" permissions by default in new organizations.</p>
+                            <p><strong>Fix:</strong> Use a Personal Access Token (PAT) stored in secrets that has the
+                                `repo` scope, or update the "Workflow permissions" in Repo Settings to "Read and Write".
+                            </p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>14. High Severity Vulnerabilities (npm audit)</strong></summary>
-                        <p><strong>Issue:</strong> Nested dependencies (e.g. <code>nth-check</code>) having
-                            vulnerabilities.
-                        </p>
-                        <p><strong>Fix:</strong> Use <code>overrides</code> in <code>package.json</code> to force secure
-                            versions.</p>
+                        <div class="faq-body">
+                            <p><strong>Issue:</strong> Nested dependencies (e.g. <code>nth-check</code>) having
+                                vulnerabilities.</p>
+                            <p><strong>Fix:</strong> Use <code>overrides</code> in <code>package.json</code> to force
+                                secure versions.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>15. Runners Not Connecting (Golden Image Failure)</strong></summary>
-                        <p><strong>Symptoms:</strong> Deployment succeeds, but runners never appear in GitHub.</p>
-                        <p><strong>Cause:</strong> <code>setup-image.sh</code> failed during image creation. The runner
-                            boots from a broken image.</p>
-                        <p><strong>Fix:</strong> Check builder VM serial logs. Rebuild image if setup script changes.
-                        </p>
+                        <div class="faq-body">
+                            <p><strong>Symptoms:</strong> Deployment succeeds, but runners never appear in GitHub.</p>
+                            <p><strong>Cause:</strong> <code>setup-image.sh</code> failed during image creation. The
+                                runner boots from a broken image.</p>
+                            <p><strong>Fix:</strong> Check builder VM serial logs. Rebuild image if setup script
+                                changes.</p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>16. gcloud: command not found</strong></summary>
-                        <p><strong>Cause:</strong> <code>gcloud</code> is not in the system <code>$PATH</code> (common
-                            if installed locally).</p>
-                        <p><strong>Fix:</strong> Update scripts to detect local binary:
-                            <code>if [ -f "./google-cloud-sdk/bin/gcloud" ]; then ...</code></p>
+                        <div class="faq-body">
+                            <p><strong>Cause:</strong> <code>gcloud</code> is not in the system <code>$PATH</code>
+                                (common if installed locally).</p>
+                            <p><strong>Fix:</strong> Update scripts to detect local binary:
+                                <code>if [ -f "./google-cloud-sdk/bin/gcloud" ]; then ...</code></p>
+                        </div>
                     </details>
 
                     <details class="faq-item">
                         <summary><strong>17. Offline Listing Clutter</strong></summary>
-                        <p><strong>Cause:</strong> Runners destroyed without deregistration.</p>
-                        <p><strong>Fix:</strong> Use <code>--ephemeral</code> flag in <code>config.sh</code> so GitHub
-                            auto-removes them after one job.</p>
+                        <div class="faq-body">
+                            <p><strong>Cause:</strong> Runners destroyed without deregistration.</p>
+                            <p><strong>Fix:</strong> Use <code>--ephemeral</code> flag in <code>config.sh</code> so
+                                GitHub auto-removes them after one job.</p>
+                        </div>
                     </details>
                 </div>
             </section>

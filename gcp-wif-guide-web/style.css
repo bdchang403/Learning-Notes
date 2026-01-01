@@ -60,6 +60,22 @@ body {
     overflow-y: auto;
 }
 
+.nav-section-header {
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--highlight-color);
+    letter-spacing: 1px;
+    margin-top: 0.5rem;
+    border-top: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.nav-section-header:first-of-type {
+    margin-top: 0;
+    border-top: none;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -415,4 +431,25 @@ footer {
     border-top: 1px solid var(--border-color);
     color: #8b949e;
     font-size: 0.95rem;
+}
+/* Wrapper for the expanded content (Added by Antigravity) */
+.faq-body {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    color: #8b949e;
+    font-size: 0.95rem;
+}
+
+.faq-body p {
+    margin-bottom: 1rem;
+    border-top: none; 
+    padding: 0;
+}
+
+.faq-body p:last-child {
+    margin-bottom: 0;
+}
+
+.faq-body strong {
+    color: #e6edf3;
 }

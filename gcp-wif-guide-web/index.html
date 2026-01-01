@@ -625,7 +625,8 @@ GITHUB_PAT=ghp_your_token_here</code></pre>
                         (Lifecycle)</h3>
                     <p><strong>Crucial Lesson:</strong> Changes to <code>startup-script.sh</code> do
                         <strong>NOT</strong>
-                        apply to running instances.</p>
+                        apply to running instances.
+                    </p>
                     <p>To apply changes (e.g., installing new tools), you must <strong>Re-run the Deployment
                             Script</strong>.
                         The script handles the lifecycle:</p>
@@ -636,94 +637,157 @@ GITHUB_PAT=ghp_your_token_here</code></pre>
                         <li>Creates a new MIG, provisioning fresh VMs.</li>
                     </ol>
 
-                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Common Errors</h3>
+                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Optimization:
+                        Golden Image Strategy</h3>
+                    <p><strong>Problem:</strong> Standard runners fail to start in < 5 minutes because they install
+                            Docker/Git on every boot.</p>
+                            <p><strong>Solution:</strong> The "Golden Image" strategy builds a custom disk image with
+                                all dependencies pre-installed. This moves the heavy lifting to the <em>build</em>
+                                phase.</p>
 
-                    <details class="faq-item">
-                        <summary><strong>1. Invalid value for field 'resource.instanceTemplate'</strong></summary>
-                        <p><strong>Error:</strong>
-                            <code>Invalid value for field 'resource.instanceTemplate': ... does not exist.</code>
-                        </p>
-                        <p><strong>Cause:</strong> Scope Mismatch. Template created as Regional but MIG looked for
-                            Global.</p>
-                        <p><strong>Fix:</strong> Remove <code>--region</code> flag when creating the instance template
-                            (use Global).</p>
-                    </details>
+                            <h4 style="margin-top: 1rem;">1. Image Setup Script (setup-image.sh)</h4>
+                            <p>Installs dependencies on a temporary VM.</p>
+                            <div class="code-block">
+                                <pre><code class="language-bash">#!/bin/bash
+set -e
+# Install Docker, Git, jq, curl
+apt-get update && apt-get install -y docker.io git jq curl wget
 
-                    <details class="faq-item">
-                        <summary><strong>2. Push cannot contain secrets</strong></summary>
-                        <p><strong>Error:</strong> <code>remote: Push cannot contain secrets</code></p>
-                        <p><strong>Fix:</strong> Remove hardcoded PATs. Use environment variables. Amend commit to
-                            remove secret from history.</p>
-                    </details>
+# Pre-pull Docker images to speed up CI
+systemctl start docker
+docker pull node:20-alpine
 
-                    <details class="faq-item">
-                        <summary><strong>3. ENOSPC: no space left on device</strong></summary>
-                        <p><strong>Cause:</strong> Default 30GB disk is too small for Docker images.</p>
-                        <p><strong>Fix:</strong> Upgrade to 100GB disk in <code>deploy.sh</code>.</p>
-                    </details>
+# Install GitHub Runner (but don't configure yet)
+mkdir -p /actions-runner && cd /actions-runner
+curl -o runner.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+tar xzf runner.tar.gz
+./bin/installdependencies.sh
 
-                    <details class="faq-item">
-                        <summary><strong>4. The resource ... already exists</strong></summary>
-                        <p><strong>Cause:</strong> Re-running script without cleanup logic.</p>
-                        <p><strong>Fix:</strong> Use latest <code>deploy.sh</code> with auto-cleanup (delete before
-                            create).</p>
-                    </details>
+# Cleanup unique IDs so they don't persist in the image
+truncate -s 0 /etc/machine-id</code></pre>
+                                <button class="copy-btn">Copy</button>
+                            </div>
 
-                    <details class="faq-item">
-                        <summary><strong>5. Could not fetch image resource</strong></summary>
-                        <p><strong>Cause:</strong> Hardcoded Ubuntu version deleted by Google.</p>
-                        <p><strong>Fix:</strong> Use <code>--image-family=ubuntu-2204-lts</code> instead of specific
-                            version.</p>
-                    </details>
+                            <h4 style="margin-top: 1rem;">2. Build Image Script (build-image.sh)</h4>
+                            <p>Creates the reusable disk image.</p>
+                            <div class="code-block">
+                                <pre><code class="language-bash"># Create temp VM
+gcloud compute instances create builder-vm \
+    --metadata-from-file=startup-script=./setup-image.sh \
+    --image-family=ubuntu-2204-lts ...
 
-                    <details class="faq-item">
-                        <summary><strong>6. bash: ./deploy.sh: Permission denied</strong></summary>
-                        <p><strong>Fix:</strong> Run <code>chmod +x deploy.sh startup-script.sh</code>.</p>
-                    </details>
+# Wait for setup to finish...
+sleep 300
 
-                    <details class="faq-item">
-                        <summary><strong>7. Slow Performance / Queuing</strong></summary>
-                        <p><strong>Cause:</strong> Cold boot (Ephemeral mode) or small MIG size.</p>
-                        <p><strong>Fix:</strong> Use Idle Timeout (10 mins) and increase MIG size to 2.</p>
-                    </details>
+# Create Image from Disk
+gcloud compute images create gh-runner-golden-v1 --source-disk=builder-vm ...</code></pre>
+                                <button class="copy-btn">Copy</button>
+                            </div>
 
-                    <details class="faq-item">
-                        <summary><strong>8. gh: command not found</strong></summary>
-                        <p><strong>Error:</strong>
-                            <code>/actions-runner/.../script.sh: line 1: gh: command not found</code>
-                        </p>
-                        <p><strong>Cause:</strong> GitHub CLI is not installed by default on self-hosted runners.</p>
-                        <p><strong>Fix:</strong> Update <code>startup-script.sh</code> to install `gh`.</p>
-                    </details>
+                            <p><strong>Deploying:</strong> Update your <code>deploy.sh</code> to use
+                                <code>--image-family=gh-runner-image</code> instead of Ubuntu, and use a lightweight
+                                <code>startup-script.sh</code> that only handles registration.
+                            </p>
 
-                    <details class="faq-item">
-                        <summary><strong>9. Deployment Script Hanging</strong></summary>
-                        <p><strong>Symptoms:</strong> Script hangs at "Cleaning up...".</p>
-                        <p><strong>Cause:</strong> <code>gcloud</code> is waiting for auth input, but output is
-                            suppressed.
-                        </p>
-                        <p><strong>Fix:</strong> Remove <code>&>/dev/null</code> or add an explicit auth check.</p>
-                    </details>
+                            <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Common
+                                Errors</h3>
 
-                    <details class="faq-item">
-                        <summary><strong>10. CI Failure: "mvn: command not found"</strong></summary>
-                        <p><strong>Cause:</strong> Maven is not installed on the base Ubuntu image.</p>
-                        <p><strong>Fix:</strong> Add <code>apt-get install -y maven</code> to the startup script.</p>
-                    </details>
+                            <details class="faq-item">
+                                <summary><strong>1. Invalid value for field 'resource.instanceTemplate'</strong>
+                                </summary>
+                                <p><strong>Error:</strong>
+                                    <code>Invalid value for field 'resource.instanceTemplate': ... does not exist.</code>
+                                </p>
+                                <p><strong>Cause:</strong> Scope Mismatch. Template created as Regional but MIG looked
+                                    for
+                                    Global.</p>
+                                <p><strong>Fix:</strong> Remove <code>--region</code> flag when creating the instance
+                                    template
+                                    (use Global).</p>
+                            </details>
 
-                    <details class="faq-item">
-                        <summary><strong>11. CI Failure: "driver config / start failed"</strong></summary>
-                        <p><strong>Cause:</strong> Chrome is missing for UI tests.</p>
-                        <p><strong>Fix:</strong> Add Google Chrome installation steps to the startup script.</p>
-                    </details>
+                            <details class="faq-item">
+                                <summary><strong>2. Push cannot contain secrets</strong></summary>
+                                <p><strong>Error:</strong> <code>remote: Push cannot contain secrets</code></p>
+                                <p><strong>Fix:</strong> Remove hardcoded PATs. Use environment variables. Amend commit
+                                    to
+                                    remove secret from history.</p>
+                            </details>
 
-                    <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Reference Scripts
-                    </h3>
+                            <details class="faq-item">
+                                <summary><strong>3. ENOSPC: no space left on device</strong></summary>
+                                <p><strong>Cause:</strong> Default 30GB disk is too small for Docker images.</p>
+                                <p><strong>Fix:</strong> Upgrade to 100GB disk in <code>deploy.sh</code>.</p>
+                            </details>
 
-                    <details class="faq-item">
-                        <summary><strong>deploy.sh</strong> (Click to Expand)</summary>
-                        <div class="code-block">
-                            <pre><code class="language-bash">#!/bin/bash
+                            <details class="faq-item">
+                                <summary><strong>4. The resource ... already exists</strong></summary>
+                                <p><strong>Cause:</strong> Re-running script without cleanup logic.</p>
+                                <p><strong>Fix:</strong> Use latest <code>deploy.sh</code> with auto-cleanup (delete
+                                    before
+                                    create).</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>5. Could not fetch image resource</strong></summary>
+                                <p><strong>Cause:</strong> Hardcoded Ubuntu version deleted by Google.</p>
+                                <p><strong>Fix:</strong> Use <code>--image-family=ubuntu-2204-lts</code> instead of
+                                    specific
+                                    version.</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>6. bash: ./deploy.sh: Permission denied</strong></summary>
+                                <p><strong>Fix:</strong> Run <code>chmod +x deploy.sh startup-script.sh</code>.</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>7. Slow Performance / Queuing</strong></summary>
+                                <p><strong>Cause:</strong> Cold boot (Ephemeral mode) or small MIG size.</p>
+                                <p><strong>Fix:</strong> Use Idle Timeout (10 mins) and increase MIG size to 2.</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>8. gh: command not found</strong></summary>
+                                <p><strong>Error:</strong>
+                                    <code>/actions-runner/.../script.sh: line 1: gh: command not found</code>
+                                </p>
+                                <p><strong>Cause:</strong> GitHub CLI is not installed by default on self-hosted
+                                    runners.</p>
+                                <p><strong>Fix:</strong> Update <code>startup-script.sh</code> to install `gh`.</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>9. Deployment Script Hanging</strong></summary>
+                                <p><strong>Symptoms:</strong> Script hangs at "Cleaning up...".</p>
+                                <p><strong>Cause:</strong> <code>gcloud</code> is waiting for auth input, but output is
+                                    suppressed.
+                                </p>
+                                <p><strong>Fix:</strong> Remove <code>&>/dev/null</code> or add an explicit auth check.
+                                </p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>10. CI Failure: "mvn: command not found"</strong></summary>
+                                <p><strong>Cause:</strong> Maven is not installed on the base Ubuntu image.</p>
+                                <p><strong>Fix:</strong> Add <code>apt-get install -y maven</code> to the startup
+                                    script.</p>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary><strong>11. CI Failure: "driver config / start failed"</strong></summary>
+                                <p><strong>Cause:</strong> Chrome is missing for UI tests.</p>
+                                <p><strong>Fix:</strong> Add Google Chrome installation steps to the startup script.</p>
+                            </details>
+
+                            <h3 style="color: var(--highlight-color); margin-top: 2rem; margin-bottom: 1rem;">Reference
+                                Scripts
+                            </h3>
+
+                            <details class="faq-item">
+                                <summary><strong>deploy.sh</strong> (Click to Expand)</summary>
+                                <div class="code-block">
+                                    <pre><code class="language-bash">#!/bin/bash
 # Deploy GCP GitHub Runner Infrastructure (Standard Tier + Persistence)
 
 # Configuration
@@ -797,14 +861,14 @@ gcloud compute instance-groups managed create $MIG_NAME \
     --zone=$ZONE
 
 echo "Deployment Complete."</code></pre>
-                            <button class="copy-btn">Copy</button>
-                        </div>
-                    </details>
+                                    <button class="copy-btn">Copy</button>
+                                </div>
+                            </details>
 
-                    <details class="faq-item">
-                        <summary><strong>startup-script.sh</strong> (Click to Expand)</summary>
-                        <div class="code-block">
-                            <pre><code class="language-bash">#!/bin/bash
+                            <details class="faq-item">
+                                <summary><strong>startup-script.sh</strong> (Click to Expand)</summary>
+                                <div class="code-block">
+                                    <pre><code class="language-bash">#!/bin/bash
 # GCP GitHub Runner Startup Script
 # Optimized for e2-standard-4 (4 vCPU, 16 GB RAM) with Idle Timeout
 
@@ -905,9 +969,9 @@ while true; do
     break
   fi
 done</code></pre>
-                            <button class="copy-btn">Copy</button>
-                        </div>
-                    </details>
+                                    <button class="copy-btn">Copy</button>
+                                </div>
+                            </details>
                 </div>
             </section>
 
@@ -1037,6 +1101,30 @@ done</code></pre>
                         </p>
                         <p><strong>Fix:</strong> Use <code>overrides</code> in <code>package.json</code> to force secure
                             versions.</p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>15. Runners Not Connecting (Golden Image Failure)</strong></summary>
+                        <p><strong>Symptoms:</strong> Deployment succeeds, but runners never appear in GitHub.</p>
+                        <p><strong>Cause:</strong> <code>setup-image.sh</code> failed during image creation. The runner
+                            boots from a broken image.</p>
+                        <p><strong>Fix:</strong> Check builder VM serial logs. Rebuild image if setup script changes.
+                        </p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>16. gcloud: command not found</strong></summary>
+                        <p><strong>Cause:</strong> <code>gcloud</code> is not in the system <code>$PATH</code> (common
+                            if installed locally).</p>
+                        <p><strong>Fix:</strong> Update scripts to detect local binary:
+                            <code>if [ -f "./google-cloud-sdk/bin/gcloud" ]; then ...</code></p>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary><strong>17. Offline Listing Clutter</strong></summary>
+                        <p><strong>Cause:</strong> Runners destroyed without deregistration.</p>
+                        <p><strong>Fix:</strong> Use <code>--ephemeral</code> flag in <code>config.sh</code> so GitHub
+                            auto-removes them after one job.</p>
                     </details>
                 </div>
             </section>
